@@ -1,0 +1,5 @@
+Sys.setenv("R_TESTS"="")
+library(testthat)
+library(spartanDB)
+options(warn = 2)
+test_check("spartanDB", report="summary")
