@@ -1,2 +1,9 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^\.git$
+^cran-comments.md
+^test_script.R
+
+^\.travis\.yml$
+^LICENSE$
+^.RData$
