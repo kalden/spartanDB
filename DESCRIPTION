@@ -8,7 +8,11 @@ License: GPL-2
 Encoding: UTF-8
 LazyData: true
 Imports: spartan, 
-    RMySQL
+    RMySQL,
+    DBI
+Suggests: knitr,
+    rmarkdown,
+    testthat
 RoxygenNote: 6.0.1
 URL: http://www.york.ac.uk/ycil/software/spartan
 BugReports: http://github.com/kalden/spartanDB/issues

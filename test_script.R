@@ -14,30 +14,35 @@ dblink<-dbConnect(MySQL(),default.file=rmysql.settingsfile,group=rmysql.db)
 parameters<-c("chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope")
 measures<-c("Velocity","Displacement")
 
+# Delete the current database structure if there already
+delete_database_structure(dblink)
+
 # Set up the database:
-create_experiments_table(dblink)
-create_parameter_values_table(dblink,parameters)
-create_simulation_results_table(dblink, measures)
-create_analysed_results_table(dblink, measures)
+create_database_structure(dblink, parameters, measures)
 
-# Two routes here: Can we add an existing parameter set to the database
-experiment_id <- setup_experiment(dblink,"LHC","2018-08-07","original ppsim lhc dataset")
-add_parameter_set_to_database(read.csv("/home/kja505/Dropbox/RoboCalc/LHC_Params.csv",header=T),experiment_id)
-# Second, can we generate an lhc sample and add straight to the database. This time use the new function
-experiment_date<-"2018-08-20"
+#### 1: LHC Sampling
+## Route 1: Generate a sample and store in the database
 generate_lhc_set_in_db(dblink, parameters, 500, c(0, 0.10, 0.10, 0.015, 0.1, 0.25), c(100, 0.9, 0.50, 0.08, 1.0, 5.0), "normal", experiment_description="generated_lhc_set")
+## Note the above has an optional date argument if you don't want to use today's date
+## Route 2: Already have an existing sample and want to add it to the database
+add_existing_lhc_sample_to_database(dblink, read.csv("/home/kja505/Dropbox/RoboCalc/LHC_Params.csv",header=T), experiment_description="original ppsim lhc dataset")
 
-# Robustness sampling
+#### 2: Robustness Sampling
 baseline<- c(0.3, 0.2, 0.04, 0.60, 1.0)
 minvals <- c(0.10, 0.10, 0.015, 0.1, 0.25)
 maxvals <- c(0.9, 0.50, 0.08, 1.0, 5.0)
 incvals <- c(0.1, 0.05, 0.005, 0.05, 0.25)
+## As spartan generates numerous CSV files in this sampling, the only route to add to the database is to generate the sample here, rather than in LHC where
+## csv files could be read in
 generate_robustness_set_in_db(dblink,parameters, baseline, minvals, maxvals, incvals, experiment_id=NULL, experiment_description="PPSim Robustness")
 
-#eFAST sampling
+#### 3: eFAST Sampling
 num_samples<-65
 num_curves<-3
 generate_efast_set_in_db(dblink, parameters, num_samples, minvals, maxvals, num_curves, experiment_id=NULL, experiment_description="PPSim eFAST")
+
+dbDisconnect(dblink)
+
 
 # Analysis settings
 FILEPATH<-"/home/kja505/Documents/ppsim_robochart_refactor_runs/"
@@ -64,7 +69,7 @@ run_results <- lhc_process_sample_run_subsets(FILEPATH, LHC_PARAM_CSV_LOCATION, 
 
 
 
-dbDisconnect(dblink)
+
 
 
 

@@ -1,3 +1,29 @@
+#' Creates all required databases for storing experiments using a simulator
+#'
+#' Takes a connection to a mysql database and creates all the tables required
+#' for storing results of all experiments conducted using a simulator
+#'
+#' @param dblink A link to the database in which this table is being created
+#' @param parameters The parameters of the simulation that are being analysed
+#' @param measures The measures of the simulation that are being assessed
+#'
+#' @export
+create_database_structure <- function(dblink, parameters, measures)
+{
+  tryCatch( {
+    out<-create_experiments_table(dblink)
+    out<-create_parameter_values_table(dblink,parameters)
+    out<-create_simulation_results_table(dblink, measures)
+    out<-create_analysed_results_table(dblink, measures)
+    message("SpartanDB database structure created")
+  },
+  error = function(e)
+  {
+    message(paste("Error in creating database structure. Returned Error:\n",e,sep=""))
+  })
+
+}
+
 #' Creates database table that stores link to each experiment
 #'
 #' Creates a table that gives each experiment its' own ID, stores the type
@@ -8,15 +34,23 @@
 #' @export
 create_experiments_table<-function(dblink)
 {
-  query<-"CREATE TABLE spartan_experiment (
-  experiment_id INT NOT NULL AUTO_INCREMENT,
-  experiment_type VARCHAR(45) NOT NULL,
-  experiment_date DATE NOT NULL,
-  experiment_description VARCHAR(90),
-  PRIMARY KEY (experiment_id),
-  UNIQUE INDEX experiment_id_UNIQUE (experiment_id ASC));"
+  tryCatch( {
+    query<-"CREATE TABLE spartan_experiment (
+    experiment_id INT NOT NULL AUTO_INCREMENT,
+    experiment_type VARCHAR(45) NOT NULL,
+    experiment_date DATE NOT NULL,
+    experiment_description VARCHAR(90),
+    PRIMARY KEY (experiment_id),
+    UNIQUE INDEX experiment_id_UNIQUE (experiment_id ASC));"
 
-  RMySQL::dbSendQuery(dblink, query)
+    RMySQL::dbSendQuery(dblink, query)
+    message("Spartan Experiments Table Created")
+  },
+  error = function(e)
+  {
+    message(paste("Error in creating Experiments table in database. Returned Error:\n",e,sep=""))
+  })
+
 }
 
 #' Creates the mySQL string to create columns for each parameter, or measure, required in the table
@@ -53,9 +87,10 @@ create_field_string <- function(field_list)
 #' @export
 create_parameter_values_table<-function(dblink, parameters)
 {
-  field_string <- create_field_string(parameters)
+  tryCatch( {
+    field_string <- create_field_string(parameters)
 
-  query<-paste("CREATE TABLE spartan_parameters (parameter_set_id INT NOT NULL AUTO_INCREMENT,",
+    query<-paste("CREATE TABLE spartan_parameters (parameter_set_id INT NOT NULL AUTO_INCREMENT,",
                field_string,
                "experiment_id INT NULL,
                PRIMARY KEY (parameter_set_id),
@@ -66,7 +101,13 @@ create_parameter_values_table<-function(dblink, parameters)
                ON DELETE NO ACTION
                ON UPDATE NO ACTION);",sep="")
 
-  RMySQL::dbSendQuery(dblink, query)
+   RMySQL::dbSendQuery(dblink, query)
+   message("Spartan Parameters Table Created")
+  },
+  error = function(e)
+  {
+    message(paste("Error in creating Parameters table in database. Returned Error:\n",e,sep=""))
+  })
 }
 
 #' Creates database table that stores results for all parameter sets for each experiment
@@ -83,9 +124,10 @@ create_parameter_values_table<-function(dblink, parameters)
 #' @export
 create_simulation_results_table <- function(dblink, measures)
 {
-  field_string <- create_field_string(measures)
+  tryCatch( {
+    field_string <- create_field_string(measures)
 
-  query<-paste("CREATE TABLE spartan_results (result_set_id INT NOT NULL AUTO_INCREMENT,",
+    query<-paste("CREATE TABLE spartan_results (result_set_id INT NOT NULL AUTO_INCREMENT,",
                field_string, "parameter_set_id INT NOT NULL,experiment_set_id INT NOT NULL,PRIMARY KEY (result_set_id),
                INDEX parameter_set_id_idx (parameter_set_id ASC),
                INDEX experiment_set_id_idx (experiment_set_id ASC),
@@ -100,7 +142,13 @@ create_simulation_results_table <- function(dblink, measures)
                ON DELETE NO ACTION
                ON UPDATE NO ACTION);",sep="")
 
-  RMySQL::dbSendQuery(dblink, query)
+    RMySQL::dbSendQuery(dblink, query)
+    message("Spartan Simulation Results Table Created")
+  },
+  error = function(e)
+  {
+    message(paste("Error in creating Simulation Results table in database. Returned Error:\n",e,sep=""))
+  })
 }
 
 #' Creates database table that stores analysed results for all parameter sets for each experiment
@@ -117,19 +165,27 @@ create_simulation_results_table <- function(dblink, measures)
 #' @export
 create_analysed_results_table <- function(dblink, measures)
 {
-  field_string <- create_field_string(measures)
+  tryCatch( {
+    field_string <- create_field_string(measures)
 
-  query<-paste("CREATE TABLE spartan_analysed_results (analysed_set_id INT NOT NULL AUTO_INCREMENT,",
-               field_string,
-               "summarising_parameter_set_id INT NOT NULL,
-    PRIMARY KEY (analysed_set_id),
-    UNIQUE INDEX analysed_set_id_UNIQUE (analysed_set_id ASC),
-    INDEX summarising_parameter_set_id_idx (summarising_parameter_set_id ASC),
-    CONSTRAINT summarising_parameter_set_id
-    FOREIGN KEY (summarising_parameter_set_id)
-    REFERENCES spartan_parameters (parameter_set_id)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION);",sep="")
+    query<-paste("CREATE TABLE spartan_analysed_results (analysed_set_id INT NOT NULL AUTO_INCREMENT,",
+                 field_string,
+                 "summarising_parameter_set_id INT NOT NULL,
+      PRIMARY KEY (analysed_set_id),
+      UNIQUE INDEX analysed_set_id_UNIQUE (analysed_set_id ASC),
+      INDEX summarising_parameter_set_id_idx (summarising_parameter_set_id ASC),
+      CONSTRAINT summarising_parameter_set_id
+      FOREIGN KEY (summarising_parameter_set_id)
+      REFERENCES spartan_parameters (parameter_set_id)
+      ON DELETE NO ACTION
+      ON UPDATE NO ACTION);",sep="")
 
-  RMySQL::dbSendQuery(dblink, query)
+    RMySQL::dbSendQuery(dblink, query)
+    message("Spartan Analysed Results Table Created")
+  },
+  error = function(e)
+  {
+    message(paste("Error in creating Analysed Results table in database. Returned Error:\n",e,sep=""))
+  })
+
 }

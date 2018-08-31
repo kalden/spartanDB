@@ -5,7 +5,8 @@
 \title{Generate eFAST analysis sample and store in database}
 \usage{
 generate_efast_set_in_db(dblink, parameters, num_samples, minvals, maxvals,
-  num_curves, experiment_id = NULL, experiment_description = NULL)
+  num_curves, experiment_id = NULL, experiment_description = NULL,
+  experiment_date = Sys.Date())
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}
@@ -27,6 +28,9 @@ experiment. If NULL an experiment ID will be created}
 
 \item{experiment_description}{A description of this experiment, if a new
 experiment is being created}
+
+\item{experiment_date}{Date experiment created. Defaults to today's date
+if not entered}
 }
 \description{
 Generates a set of parameters for execution in simulation to permit

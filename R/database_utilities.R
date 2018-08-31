@@ -30,6 +30,6 @@ get_parameter_set_id<-function(dblink, parameter_set,experiment_id)
 get_experiment_id <- function(dblink,experiment_type,experiment_date, experiment_description)
 {
   id<-RMySQL::dbFetch(RMySQL::dbSendQuery(dblink,paste("SELECT experiment_id FROM spartan_experiment WHERE experiment_type='",experiment_type,"' AND experiment_description='",experiment_description,
-                                       "' AND experiment_date='",Sys.Date(),"';",sep="")))
+                                       "' AND experiment_date='",experiment_date,"';",sep="")))
   return(as.numeric(id))
 }
