@@ -5,7 +5,8 @@
 \title{Returns the ID of a parameter set, using the experiment ID within which
 this parameter set was generated}
 \usage{
-get_parameter_set_id(dblink, parameter_set, experiment_id)
+get_parameter_set_id(dblink, parameter_set, experiment_id,
+  row_reference = NULL)
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}
@@ -13,6 +14,8 @@ get_parameter_set_id(dblink, parameter_set, experiment_id)
 \item{parameter_set}{Parameter set for which ID is being sought}
 
 \item{experiment_id}{Experiment ID for which this parameter set is within}
+
+\item{row_reference}{For robustness analysis baseline, more than one ID could be returned. The calling function provides a row reference of which should be returned}
 }
 \value{
 Parameter set ID

@@ -4,7 +4,8 @@
 \alias{add_parameter_set_to_database}
 \title{Add a generated parameter set to the database}
 \usage{
-add_parameter_set_to_database(dblink, parameter_set, experiment_id)
+add_parameter_set_to_database(dblink, parameter_set, experiment_id,
+  experiment_type, curve = NULL, param_of_interest = NULL)
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}
@@ -12,6 +13,15 @@ add_parameter_set_to_database(dblink, parameter_set, experiment_id)
 \item{parameter_set}{Parameter set to add to the database}
 
 \item{experiment_id}{Database experiment ID to which this parameter set belongs}
+
+\item{experiment_type}{Type of experiment being designed}
+
+\item{curve}{For eFAST, which curve this parameter belongs to}
+
+\item{param_of_interest}{For eFAST and Robustness, which parameter this set is specific to}
+}
+\value{
+Boolean showing success of writing to the table or not
 }
 \description{
 Add a generated parameter set to the database
