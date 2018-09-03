@@ -11,7 +11,9 @@ rmysql.db<-"spartan_ppsim"
 dblink<-dbConnect(MySQL(),default.file=rmysql.settingsfile,group=rmysql.db)
 
 # Simulation Settings
-parameters<-c("chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope")
+#parameters<-c("BindProbability","ChemoThreshold","ChemoUpperLinearAdjust","ChemoLowerLinearAdjust","VCAMProbabilityThreshold","VCAMSlope","Dummy")
+# Only two parameters in the robustness analysis test
+parameters<-c("chemoUpperLinearAdjust","chemoLowerLinearAdjust")
 measures<-c("Velocity","Displacement")
 
 # Delete the current database structure if there already
@@ -40,6 +42,45 @@ generate_robustness_set_in_db(dblink,parameters, baseline, minvals, maxvals, inc
 num_samples<-65
 num_curves<-3
 generate_efast_set_in_db(dblink, parameters, num_samples, minvals, maxvals, num_curves, experiment_id=NULL, experiment_description="PPSim eFAST")
+## Or can add an existing generated set to the database
+parameter_set_path<-"/home/kja505/Downloads/Spartan_Tutorial_Data/eFAST_Spartan2"
+num_curves<-3
+add_existing_efast_sample_to_database(dblink, parameter_set_path, parameters, num_curves,experiment_description="Original PPSim eFAST")
+
+
+#### 4: Adding LHC Results to Database
+## Route 1: From Spartan 2, all results can be provided in a single CSV file - this method processes that file and puts all results in the DB
+## In this case, we add the parameters from the tutorial set, don't generate them, such that the parameters can tie up with the results
+add_existing_lhc_sample_to_database(dblink, read.csv("/home/kja505/Downloads/Spartan_Tutorial_Data/LHC_Spartan2/Tutorial_Parameters_for_Runs.csv",header=T), experiment_description="original ppsim lhc dataset")
+# Now add the results for that experiment
+experiment_id<-1 # Could have also added by description and date - these removed as default to NULL if ID specified
+add_lhc_and_robustness_sim_results_from_csv_file(dblink, "/home/kja505/Downloads/Spartan_Tutorial_Data/LHC_Spartan2/LHC_AllResults.csv", parameters, measures, experiment_id)
+
+## Route 2: It may be the case that a user wishes to work with the old folder structure, and as such results can be input that way too using this wrapper
+## TODO
+
+#### 5: Adding eFAST Results to Database
+## CSV file:
+# In this case, we add the parameters from the tutorial set, don't generate them, such that the parameters can tie up with the results
+parameter_set_path<-"/home/kja505/Downloads/Spartan_Tutorial_Data/eFAST_Spartan2"
+num_curves<-3
+add_existing_efast_sample_to_database(dblink, parameter_set_path, parameters, num_curves,experiment_description="Original PPSim eFAST")
+# Now add the results for this experiment
+experiment_id<-1 # Could have also added by description and date - these removed as default to NULL if ID specified
+add_efast_sim_results_from_csv_files(dblink, results_folder_path, parameters, measures, num_curves, experiment_id)
+
+
+#### 6: Adding Robustness Results to Database
+## CSV File:
+# In this case, we add the parameters from the tutorial set, don't generate them, such that the parameters can tie up with the results
+parameter_set_path<-"/home/kja505/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured"
+# Only two parameters in this test
+parameters<-c("chemoUpperLinearAdjust","chemoLowerLinearAdjust")
+add_existing_robustness_sample_to_database(dblink, parameter_set_path, parameters, experiment_description="Original PPSim Robustness")
+# Now add the results for this experiment:
+experiment_id<-1
+add_lhc_and_robustness_sim_results_from_csv_file(dblink,"/home/kja505/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured/OAT_Medians.csv", parameters, measures, experiment_id)
+
 
 dbDisconnect(dblink)
 

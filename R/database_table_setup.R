@@ -73,6 +73,24 @@ create_field_string <- function(field_list)
   return(field_string)
 }
 
+#' Creates the mySQL string to find a record where parameters have a given value
+#' @param parameters List of parameters to build into the query
+#' @param values Values for each of those parameters
+#' @return String to add to a mySQL query
+create_parameter_field_string<-function(parameters, values)
+{
+  field_string<-""
+  for(entry in 1:length(parameters))
+  {
+    field_string <- paste(field_string, parameters[entry], "=",values[entry],sep="")
+    if(entry<length(parameters))
+      field_string <- paste(field_string," AND ",sep="")
+    else
+      field_string <- paste(field_string,";",sep="")
+  }
+  return(field_string)
+}
+
 #' Creates database table that stores all generated parameter sets for each experiment
 #'
 #' Creates a table that gives each parameter set its' own ID, stores the values for each

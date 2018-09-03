@@ -61,7 +61,7 @@ test_that("generate_lhc_set_in_db", {
   expect_true(all(is.na(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,5])))
 
   # Can check error generation here, if say there was a typo in max values. Error should be returned where experiment ID 2 is rolled back
-  expect_message(generate_lhc_set_in_db(dblink, c("parameter1","parameter2"),10 , c(A,0.1), c(1,1), "normal", experiment_description="Test LHC2", experiment_date = Sys.Date()), "Experiment ID 2 created in failed attempt at sample generation deleted from DB")
+  expect_message(generate_lhc_set_in_db(dblink, c("parameter1","parameter2"),10 , c(A,0.1), c(1,1), "normal", experiment_description="Test LHC2", experiment_date = Sys.Date()), "Experiment ID 2, created in failed attempt at sample generation, now deleted from DB")
 
   close_db_link(dblink)
 

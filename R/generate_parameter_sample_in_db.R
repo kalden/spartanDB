@@ -40,7 +40,7 @@ generate_robustness_set_in_db <- function(dblink,parameters,baseline, minvals, m
         # Append the parameter of interest as a new column
         param_set<-cbind(sample[[param]],rep(parameters[param],nrow(sample[[param]])))
         colnames(param_set)<-c(colnames(param_set)[1:ncol(param_set)-1],"paramOfInterest")
-        add_parameter_set_to_database(dblink, param_set, experiment_id)
+        add_parameter_set_to_database(dblink, param_set, experiment_id, experiment_type="Robustness")
       }
 
       message(paste("Robustness Parameter Set Added to Database, with Experiment ID ",experiment_id,sep=""))
@@ -92,15 +92,12 @@ generate_efast_set_in_db <- function(dblink, parameters, num_samples, minvals, m
       sample<-spartan::efast_generate_sample(FILEPATH=NULL, num_curves, num_samples, parameters, minvals, maxvals, write_csv=FALSE,return_sample=TRUE)
 
       # Now to output each set into the database
-      for(curve in 1:num_curves) {
+      for(c in 1:num_curves) {
         for(param in 1:length(parameters)) {
-          # Get the sample, and append the parameter of interest and the resample curve
-          output_params <- cbind(sample[, , param, curve], rep(parameters[param],nrow(sample[, , param, curve])),rep(curve,nrow(sample[, , param, curve])))
-          # Get the headers to match the database
-          colnames(output_params)<-c(parameters,"paramOfInterest","curve")
-          # Now add to the database
-          add_parameter_set_to_database(dblink, output_params, experiment_id)
-
+          # Now add to the database - curve and parameter of interest are added in the called function
+          output_params<-sample[, , param, c]
+          colnames(output_params)<-c(parameters)
+          add_parameter_set_to_database(dblink, output_params, experiment_id, experiment_type="eFAST", curve=c,param_of_interest = parameters[param])
         }
       }
       message(paste("eFAST Parameter Set Added to Database, with Experiment ID ",experiment_id,sep=""))
@@ -145,7 +142,7 @@ generate_lhc_set_in_db <- function(dblink, parameters, num_samples, minvals, max
     if(experiment_id != -1)
     {
       sample<-spartan::lhc_generate_lhc_sample(FILEPATH=NULL, parameters, num_samples, minvals, maxvals, "normal", write_csv=FALSE)
-      add_parameter_set_to_database(dblink, sample, experiment_id)
+      add_parameter_set_to_database(dblink, sample, experiment_id, experiment_type="LHC")
       message(paste("Parameter Set Added to Database, with Experiment ID ",experiment_id,sep=""))
     }
   }, error = function(e)
@@ -182,12 +179,116 @@ add_existing_lhc_sample_to_database<-function(dblink, parameter_set, experiment_
     if(experiment_id != -1)
     {
       # If no experiment ID is specified, generate a new experiment
-      a<-add_parameter_set_to_database(dblink, parameter_set, experiment_id)
-      message(paste("Parameter Set Added to Database, with Experiment ID ",experiment_id,sep=""))
+      success <- add_parameter_set_to_database(dblink, parameter_set, experiment_id, experiment_type="LHC")
+      if(!success)
+        stop("Error in Adding Parameter Set to Database")
+      else
+        message(paste("Parameter Set Added to Database, with Experiment ID ",experiment_id,sep=""))
     }
   }, error = function(e)
   {
     message(paste("Error in Storing Pre-Existing LHC Sample in Database. Error Message Generated: \n",e,sep=""))
+    if(new_experiment_flag)
+      remove_errored_new_experiment_from_db(dblink, experiment_id)
+  })
+}
+
+#' Adds a previously generated eFAST sample to the database, either creating an experiment record for this in doing so or checking a specified experiment ID
+#'
+#' If an experiment ID is specified, the existance of this record is checked, as well as the existance of any current parameter sets for that experiment. In
+#' this case, as spartan creates an eFAST sample over several files, the user should provide the folder containing each of these files
+#'
+#' @param dblink A link to the database in which this table is being created
+#' @param parameter_set_path Path to the parameter sets to add to the database
+#' @param parameters Simulation parameters being analysed
+#' @param num_curves Number of resample curves employed in sampling
+#' @param experiment_id The ID of the experiment in the database, if not a new
+#' experiment. If NULL an experiment ID will be created
+#' @param experiment_description A description of this experiment, if a new
+#' experiment is being created
+#' @param experiment_date Date experiment created. Defaults to today's date
+#' if not entered
+#'
+#' @export
+add_existing_efast_sample_to_database<-function(dblink, parameter_set_path, parameters, num_curves, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date())
+{
+  # Flag to store if a new experiment is created, in case rollback is required on sample generation error
+  new_experiment_flag <- set_new_experiment_flag(experiment_id)
+
+  tryCatch({
+    experiment_id <- check_experiment_id(dblink, experiment_id, "eFAST", experiment_date, experiment_description)
+
+    # Check above was successful (returned a value that isn't -1)
+    if(experiment_id != -1)
+    {
+      # At the moment it is assumed that the Dummy is specified in the parameter list
+
+      # Now cycle through all parameters and all curves
+      for(c in 1:num_curves)
+      {
+        for(p in 1:length(parameters))
+        {
+          # Read in the CSV file containing the parameter sets
+          params<-read.csv(file.path(parameter_set_path,paste("Curve",c,"_Parameter",p,"_Parameters.csv",sep="")),header=T)
+          success <- add_parameter_set_to_database(dblink, params, experiment_id, experiment_type="eFAST",curve=c,param_of_interest=p)
+
+          if(!success)
+            stop("Error in Adding eFAST Parameter Set to Database")
+        }
+      }
+
+      message(paste("Parameter Set Added to Database, with Experiment ID ",experiment_id,sep=""))
+    }
+  }, error = function(e)
+  {
+    message(paste("Error in Storing Pre-Existing eFAST Sample in Database. Error Message Generated: \n",e,sep=""))
+    if(new_experiment_flag)
+      remove_errored_new_experiment_from_db(dblink, experiment_id)
+  })
+}
+
+#' Adds a previously generated robustness sample to the database, either creating an experiment record for this in doing so or checking a specified experiment ID
+#'
+#' If an experiment ID is specified, the existance of this record is checked, as well as the existance of any current parameter sets for that experiment. In
+#' this case, as spartan creates a robustness sample over several files, the user should provide the folder containing each of these files
+#'
+#' @param dblink A link to the database in which this table is being created
+#' @param parameter_set_path Path to the parameter sets to add to the database
+#' @param parameters Simulation parameters being analysed
+#' @param experiment_id The ID of the experiment in the database, if not a new
+#' experiment. If NULL an experiment ID will be created
+#' @param experiment_description A description of this experiment, if a new
+#' experiment is being created
+#' @param experiment_date Date experiment created. Defaults to today's date
+#' if not entered
+#'
+#' @export
+add_existing_robustness_sample_to_database<-function(dblink, parameter_set_path, parameters, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date())
+{
+  # Flag to store if a new experiment is created, in case rollback is required on sample generation error
+  new_experiment_flag <- set_new_experiment_flag(experiment_id)
+
+  tryCatch({
+    experiment_id <- check_experiment_id(dblink, experiment_id, "Robustness", experiment_date, experiment_description)
+
+    # Check above was successful (returned a value that isn't -1)
+    if(experiment_id != -1)
+    {
+      # There is one CSV sheet per parameter, so we iterate through these
+      for(p in 1:length(parameters))
+      {
+        # Read in the CSV file containing the parameter sets
+        params<-read.csv(file.path(parameter_set_path,paste(parameters[p],"_OAT_Values.csv",sep="")),header=T)
+        success <- add_parameter_set_to_database(dblink, params, experiment_id, experiment_type="Robustness",param_of_interest=p)
+
+        if(!success)
+          stop("Error in Adding eFAST Parameter Set to Database")
+      }
+      message(paste("Parameter Sets Added to Database, with Experiment ID ",experiment_id,sep=""))
+    }
+  }, error = function(e)
+  {
+    message(paste("Error in Storing Pre-Existing Robustness Sample in Database. Error Message Generated: \n",e,sep=""))
     if(new_experiment_flag)
       remove_errored_new_experiment_from_db(dblink, experiment_id)
   })
@@ -198,17 +299,37 @@ add_existing_lhc_sample_to_database<-function(dblink, parameter_set, experiment_
 #' @param dblink A link to the database in which this table is being created
 #' @param parameter_set Parameter set to add to the database
 #' @param experiment_id Database experiment ID to which this parameter set belongs
+#' @param experiment_type Type of experiment being designed
+#' @param curve For eFAST, which curve this parameter belongs to
+#' @param param_of_interest For eFAST and Robustness, which parameter this set is specific to
+#' @return Boolean showing success of writing to the table or not
 #'
-add_parameter_set_to_database<-function(dblink, parameter_set,experiment_id)
+add_parameter_set_to_database<-function(dblink, parameter_set,experiment_id, experiment_type, curve=NULL, param_of_interest=NULL)
 {
   tryCatch({
     # Parameter set needs additional link to the experiment id to be added to dataset
-    r<-cbind(parameter_set,rep(experiment_id,nrow(parameter_set)))
-    colnames(r)<-c(colnames(r)[1:ncol(r)-1],"experiment_id")
+    if(experiment_type=="LHC")
+    {
+      r<-cbind(parameter_set,rep(experiment_id,nrow(parameter_set)))
+      colnames(r)<-c(colnames(r)[1:(ncol(r)-1)],"experiment_id")
+    }
+    else if(experiment_type=="eFAST")
+    {
+      r<-cbind(parameter_set,rep(experiment_id,nrow(parameter_set)),rep(param_of_interest,nrow(parameter_set)),rep(curve,nrow(parameter_set)))
+      colnames(r)<-c(colnames(r)[1:(ncol(r)-3)],"experiment_id","paramOfInterest","curve")
+    }
+    else if(experiment_type=="Robustness")
+    {
+      r<-cbind(parameter_set,rep(experiment_id,nrow(parameter_set)),rep(as.numeric(param_of_interest),nrow(parameter_set)))
+      colnames(r)<-c(colnames(r)[1:(ncol(r)-2)],"experiment_id","paramOfInterest")
+    }
+
     RMySQL::dbWriteTable(dblink, value = as.data.frame(r), row.names = FALSE, name = "spartan_parameters", append = TRUE )
+    return(TRUE)
   }, error = function(e)
   {
     message(paste("Error in Adding Existing Parameter Set to Database. Error Message Generated:\n",e,sep=""))
+    return(FALSE)
   })
 }
 
@@ -237,8 +358,7 @@ check_experiment_id<-function(dblink, experiment_id, experiment_type, experiment
       if(nrow(id)>0)
       {
         # Exists. Now need to check whether there are parameter values already there for this experiment, and fail this addition if there are
-        params<-DBI::dbGetQuery(dblink,paste("SELECT * FROM spartan_parameters WHERE experiment_id=",experiment_id,";",sep=""))
-        if(nrow(params)>0)
+        if(check_parameter_sets_exist_for_given_experiment_id(dblink, experiment_id))
         {
           message(paste("Parameter values already exist for experiment ID ",experiment_id,". Set not added to the Database",sep=""))
           # Return -1 to indicate error in addition of this set
@@ -285,7 +405,7 @@ remove_errored_new_experiment_from_db <- function(dblink, experiment_id)
 {
   tryCatch({
     id<-DBI::dbGetQuery(dblink,paste("DELETE FROM spartan_experiment WHERE experiment_id=",experiment_id,";",sep=""))
-    message(paste("Experiment ID ",experiment_id," created in failed attempt at sample generation deleted from DB",sep=""))
+    message(paste("Experiment ID ",experiment_id,", created in failed attempt at sample generation, now deleted from DB",sep=""))
   }, error = function(e)
   {
     message(paste("Error in rolling back experiment database to delete experiment ID ",experiment_id," created in failed sample generation",sep=""))
