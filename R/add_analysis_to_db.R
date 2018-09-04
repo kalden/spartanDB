@@ -4,14 +4,16 @@
 #' @param all_results The path to the CSV file being added to the database
 #' @param parameters The parameters of the simulation that are being analysed
 #' @param measures The measures of the simulation that are being assessed
+#' @param experiment_type Whether this is an LHC or Robustness analysis experiment
 #' @param experiment_id Experiment ID for the results being added. May be NULL if description and date specified
 #' @param experiment_date Date experiment created. May be NULL if adding by experiment ID
 #' @param experiment_description A description of this experiment. May be NULL if adding by experiment ID
 #'
 #' @export
-add_lhc_and_robustness_sim_results_from_csv_file <- function(dblink, all_results, parameters, measures, experiment_id=NULL, experiment_description=NULL, experiment_date=NULL)
+add_lhc_and_robustness_sim_results_from_csv_file <- function(dblink, all_results, parameters, measures, experiment_type, experiment_id=NULL, experiment_description=NULL, experiment_date=NULL)
 {
   tryCatch({
+
     # Firstly we need to check the experiment exists, and has associated parameter sets in the database
     # Though experiment_id may have been specified, it may not have been if searching DB by description and date. Thus the check function
     # returns the experiment_id once this is retrieved (or if check ok where experiment_id specified, just returns the same ID)
@@ -23,7 +25,7 @@ add_lhc_and_robustness_sim_results_from_csv_file <- function(dblink, all_results
       # Providing this is read in correctly, we can then process these into the DB
       if(nrow(results)>0)
       {
-        success <- add_replicate_runs_to_database(dblink, parameters, measures, results, experiment_id)
+        success <- add_replicate_runs_to_database(dblink, parameters, measures, results, experiment_id, experiment_type)
         if(!success)
           stop("Error in Adding LHC/robustness results from CSV file")
         else
@@ -74,7 +76,7 @@ add_efast_sim_results_from_csv_files <- function(dblink, results_folder_path, pa
           # Providing this is read in correctly, we can then process these into the DB
           if(nrow(results)>0)
           {
-            success <- add_replicate_runs_to_database(dblink, parameters, measures, results, experiment_id,experiment_type="eFAST",curve=c,param_of_interest = p)
+            success <- add_replicate_runs_to_database(dblink, parameters, measures, results, experiment_id,experiment_type="eFAST",curve=c,param_of_interest = parameters)
             if(!success)
               stop("Error in Adding LHC results from CSV file")
             else
@@ -188,10 +190,14 @@ add_replicate_runs_to_database<-function(dblink, parameters, measures, all_resul
     # Work on the top row initially, then we can do all the others separately
     # This ensures we don't have to query the database for a parameter set ID if the parameters are the same
     current_parameter_set<-all_results[1,1:length(parameters)]
-    params_processed<-1
+    parameter_set_id<-get_parameter_set_id(dblink,current_parameter_set,experiment_id,baseline_db_refs)
+    if(nrow(parameter_set_id)>1)
+    {
+      parameter_set_id<-parameter_set_id[,baseline_db_refs]
+      baseline_db_refs<-baseline_db_refs+1
+    }
+
     #print(current_parameter_set)
-    #print(paste("Processed: ",params_processed,sep=""))
-    parameter_set_id<-get_parameter_set_id(dblink,current_parameter_set,experiment_id, baseline_db_refs)
 
     if(experiment_type=="LHC") {
       f<-cbind(t(as.numeric(all_results[1,measures])),parameter_set_id,experiment_id)
@@ -199,21 +205,22 @@ add_replicate_runs_to_database<-function(dblink, parameters, measures, all_resul
       f<-cbind(t(as.numeric(all_results[1,measures])),parameter_set_id,experiment_id,param_of_interest,curve)
     } else if(experiment_type=="Robustness") {
       # For a robustness analysis, we need to retrieve the parameter of interest for this parameter set from the database
-      param_of_interest <- retrieve_parameter_of_interest(dblink, current_parameter_set, experiment_id)
-      f<-cbind(t(as.numeric(all_results[1,measures])),parameter_set_id,experiment_id,as.numeric(param_of_interest[baseline_db_refs,]))
+      param_of_interest<-retrieve_parameter_of_interest_using_param_id(dblink,parameter_set_id)
+      #param_of_interest <- retrieve_parameter_of_interest(dblink, current_parameter_set, experiment_id)
+      #f<-cbind(t(as.numeric(all_results[1,measures])),parameter_set_id,experiment_id,param_of_interest[baseline_db_refs,])
+      f<-cbind(t(as.numeric(all_results[1,measures])),parameter_set_id,experiment_id,param_of_interest)
       # If more than one param_of_interest was returned, increase the reference so for the next baseline set, we use the next parameter reference
-      if(nrow(param_of_interest)>1) {
-        baseline_db_refs<-baseline_db_refs+1
-      }
+      #if(nrow(param_of_interest)>1) {
+      #  baseline_db_refs<-baseline_db_refs+1
+      #}
     }
 
     block_to_add_to_database<-rbind(block_to_add_to_database,f)
 
-    #colnames(f)<-c(measures,"parameter_set_id","experiment_set_id")
-    #dbWriteTable(dblink, value = as.data.frame(f),row.names=FALSE,name="spartan_results", append=TRUE)
-
+    #for(result in 2:1487)
     for(result in 2:nrow(all_results))
     {
+      #print(result)
       # Get the parameters
       parameter_values = all_results[result,1:length(parameters)]
       # See if we need to get the ID for this parameter set from the database, or whether it is equal to the last set
@@ -227,27 +234,33 @@ add_replicate_runs_to_database<-function(dblink, parameters, measures, all_resul
         else if(experiment_type=="Robustness")
           colnames(block_to_add_to_database)<-c(measures,"parameter_set_id","experiment_set_id","paramOfInterest")
 
-
-        RMySQL::dbWriteTable(dblink, value = as.data.frame(block_to_add_to_database),row.names=FALSE,name="spartan_results", append=TRUE)
+        #print(current_parameter_set)
+        #print(paste("Parameter Set: ",parameter_set_id," Writing ",nrow(block_to_add_to_database)," rows",sep=""))
+        a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(block_to_add_to_database),row.names=FALSE,name="spartan_results", append=TRUE)
+        #print(a)
         # Reset the block to empty
         block_to_add_to_database<-NULL
 
         # Now We need to query the value for the next set of parameters
         current_parameter_set = parameter_values
-        params_processed=params_processed+1
-        print(current_parameter_set)
-        print(paste("Processed: ",params_processed,sep=""))
-
         parameter_set_id<-get_parameter_set_id(dblink, current_parameter_set,experiment_id, baseline_db_refs)
-        print(parameter_set_id)
+        if(nrow(parameter_set_id)>1)
+        {
+          parameter_set_id<-parameter_set_id[,baseline_db_refs]
+          baseline_db_refs<-baseline_db_refs+1
+        }
 
         # For a robustness analysis, we need to check the parameter of interest for this new set
         if(experiment_type=="Robustness")
         {
-          param_of_interest <- retrieve_parameter_of_interest(dblink, current_parameter_set, experiment_id)
+          #param_of_interest <- retrieve_parameter_of_interest(dblink, current_parameter_set, experiment_id)
+          param_of_interest<-retrieve_parameter_of_interest_using_param_id(dblink,parameter_set_id)
           # If more than one param_of_interest was returned, increase the reference so for the next baseline set, we use the next parameter reference
-          if(nrow(param_of_interest)>1)
-            baseline_db_refs<-baseline_db_refs+1
+          #if(nrow(param_of_interest)>1)
+          #{
+            #print(result)
+           # baseline_db_refs<-baseline_db_refs+1
+          #}
         }
       }
 
@@ -257,7 +270,13 @@ add_replicate_runs_to_database<-function(dblink, parameters, measures, all_resul
       else if(experiment_type=="eFAST")
         f<-cbind(t(as.numeric(all_results[result,measures])),parameter_set_id,experiment_id,param_of_interest,curve)
       else if(experiment_type=="Robustness")
-        f<-cbind(t(as.numeric(all_results[result,measures])),parameter_set_id,experiment_id,as.numeric(param_of_interest[baseline_db_refs,]))
+      {
+       # if(nrow(param_of_interest)>1)
+      #    f<-cbind(t(as.numeric(all_results[result,measures])),parameter_set_id,experiment_id,param_of_interest[baseline_db_refs,])
+      #  else
+      #    f<-cbind(t(as.numeric(all_results[result,measures])),parameter_set_id,experiment_id,param_of_interest[1,])
+        f<-cbind(t(as.numeric(all_results[result,measures])),parameter_set_id,experiment_id,param_of_interest)
+      }
 
       block_to_add_to_database<-rbind(block_to_add_to_database,f)
     }

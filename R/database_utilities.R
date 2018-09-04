@@ -19,10 +19,11 @@ get_parameter_set_id<-function(dblink, parameter_set,experiment_id, row_referenc
 
   parameter_set_id<-RMySQL::dbFetch(RMySQL::dbSendQuery(dblink,query_string))
 
-  if(nrow(parameter_set_id)==1)
-    return(as.numeric(parameter_set_id))
-  else
-    return(as.numeric(parameter_set_id[row_reference,]))
+  return(parameter_set_id)
+  #if(nrow(parameter_set_id)==1)
+  #  return(as.numeric(parameter_set_id))
+  #else
+  #  return(as.numeric(parameter_set_id[row_reference,]))
 }
 
 #' For a given parameter set in the database, retrieve the parameter of interest for that set in the analysis
@@ -44,7 +45,11 @@ retrieve_parameter_of_interest<-function(dblink, parameter_set,experiment_id)
   param_of_interest<-RMySQL::dbFetch(RMySQL::dbSendQuery(dblink,query_string))
 
   return(param_of_interest)
+}
 
+retrieve_parameter_of_interest_using_param_id<-function(dblink,parameter_set_id)
+{
+  return(RMySQL::dbFetch(RMySQL::dbSendQuery(dblink,paste("SELECT paramOfInterest FROM spartan_parameters WHERE parameter_set_id=",parameter_set_id,";",sep=""))))
 }
 
 #' Return the experiment ID for a given experiment type, date, and description

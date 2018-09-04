@@ -88,7 +88,7 @@ generate_efast_set_in_db <- function(dblink, parameters, num_samples, minvals, m
 
     if(experiment_id != -1)
     {
-      # Generate the eFAST sample
+      # Generate the eFAST sample - note the user should have specified a dummy parameter in doing this
       sample<-spartan::efast_generate_sample(FILEPATH=NULL, num_curves, num_samples, parameters, minvals, maxvals, write_csv=FALSE,return_sample=TRUE)
 
       # Now to output each set into the database
@@ -230,7 +230,7 @@ add_existing_efast_sample_to_database<-function(dblink, parameter_set_path, para
         {
           # Read in the CSV file containing the parameter sets
           params<-utils::read.csv(file.path(parameter_set_path,paste("Curve",c,"_Parameter",p,"_Parameters.csv",sep="")),header=T)
-          success <- add_parameter_set_to_database(dblink, params, experiment_id, experiment_type="eFAST",curve=c,param_of_interest=p)
+          success <- add_parameter_set_to_database(dblink, params, experiment_id, experiment_type="eFAST",curve=c,param_of_interest=parameters[p])
 
           if(!success)
             stop("Error in Adding eFAST Parameter Set to Database")
@@ -279,7 +279,7 @@ add_existing_robustness_sample_to_database<-function(dblink, parameter_set_path,
       {
         # Read in the CSV file containing the parameter sets
         params<-utils::read.csv(file.path(parameter_set_path,paste(parameters[p],"_OAT_Values.csv",sep="")),header=T)
-        success <- add_parameter_set_to_database(dblink, params, experiment_id, experiment_type="Robustness",param_of_interest=p)
+        success <- add_parameter_set_to_database(dblink, params, experiment_id, experiment_type="Robustness",param_of_interest=parameters[p])
 
         if(!success)
           stop("Error in Adding eFAST Parameter Set to Database")
@@ -320,7 +320,7 @@ add_parameter_set_to_database<-function(dblink, parameter_set,experiment_id, exp
     }
     else if(experiment_type=="Robustness")
     {
-      r<-cbind(parameter_set,rep(experiment_id,nrow(parameter_set)),rep(as.numeric(param_of_interest),nrow(parameter_set)))
+      r<-cbind(parameter_set,rep(experiment_id,nrow(parameter_set)),rep(param_of_interest,nrow(parameter_set)))
       colnames(r)<-c(colnames(r)[1:(ncol(r)-2)],"experiment_id","paramOfInterest")
     }
 

@@ -5,8 +5,8 @@
 \title{Adds a set of results to the database for a given LHC or robustness experiment, from a CSV file}
 \usage{
 add_lhc_and_robustness_sim_results_from_csv_file(dblink, all_results,
-  parameters, measures, experiment_id = NULL, experiment_description = NULL,
-  experiment_date = NULL)
+  parameters, measures, experiment_type, experiment_id = NULL,
+  experiment_description = NULL, experiment_date = NULL)
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}
