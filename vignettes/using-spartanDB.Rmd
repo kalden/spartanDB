@@ -95,7 +95,7 @@ download_sample_as_csvfile(output_directory, dblink, experiment_id=2)
 
 In the case where a pre-generated sample already exists (as a CSV file for each parameter in this local sensitivity analysis case), spartanDB contains a method to add this to the database, creating a new experiment:
 
-```{r,eval=false}
+```{r,eval=FALSE}
 parameter_set_path<-"/home/user/path_to_sample_csv_files"
 add_existing_robustness_sample_to_database(dblink, parameter_set_path, parameters, experiment_description="Original PPSim Robustness")
 # If you want to specify experiment date, you can do this with the experiment_date argument
@@ -170,7 +170,7 @@ download_sample_as_csvfile(output_directory, dblink, experiment_id=2)
 
 Similarly to the methods above, if you have a pre-generated sample (one CSV file per parameter/curve pair) you can add this to the database:
 
-```{r,eval=false}
+```{r,eval=FALSE}
 parameter_set_path<-"/home/user/path_to_sample_csv_files"
 add_existing_efast_sample_to_database(dblink, parameter_set_path, parameters, num_curves, experiment_description="Original PPSim eFAST")
 # Use the experiment_date option to specify the date of experiment if you don't want to use that day's date.
