@@ -7,5 +7,10 @@ setup_db_link <-function()
 
 close_db_link <- function(dblink)
 {
-  RMySQL::dbDisconnect(dblink)
+  tryCatch({
+    RMySQL::dbDisconnect(dblink)
+  }, error = function(e)
+    {
+    message(paste("Error closing database link. Error message generated: \n",e,sep=""))
+  })
 }

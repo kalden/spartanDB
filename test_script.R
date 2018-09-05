@@ -13,7 +13,7 @@ dblink<-dbConnect(MySQL(),default.file=rmysql.settingsfile,group=rmysql.db)
 # Simulation Settings
 #parameters<-c("thresholdBindProbability","chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope")
 # Only two parameters in the robustness analysis test
-parameters<-c("chemoUpperLinearAdjust","chemoLowerLinearAdjust")
+#parameters<-c("chemoUpperLinearAdjust","chemoLowerLinearAdjust")
 # Slightly different names in eFAST set
 #parameters<-c("BindProbability","ChemoThreshold","ChemoUpperLinearAdjust","ChemoLowerLinearAdjust","VCAMProbabilityThreshold","VCAMSlope","Dummy")
 measures<-c("Velocity","Displacement")
@@ -26,24 +26,32 @@ create_database_structure(dblink, parameters, measures)
 
 #### 1: LHC Sampling
 ## Route 1: Generate a sample and store in the database
-generate_lhc_set_in_db(dblink, parameters, 500, c(0, 0.10, 0.10, 0.015, 0.1, 0.25), c(100, 0.9, 0.50, 0.08, 1.0, 5.0), "normal", experiment_description="generated_lhc_set")
+parameters<-c("chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope")
+generate_lhc_set_in_db(dblink, parameters, 500, c(0.10, 0.10, 0.015, 0.1, 0.25), c(0.9, 0.50, 0.08, 1.0, 5.0), "normal", experiment_description="generated_lhc_set")
+download_sample_as_csvfile("/home/kja505/Desktop/", dblink, experiment_type="LHC",experiment_id=1)
 ## Note the above has an optional date argument if you don't want to use today's date
 ## Route 2: Already have an existing sample and want to add it to the database
 add_existing_lhc_sample_to_database(dblink, read.csv("/home/kja505/Dropbox/RoboCalc/LHC_Params.csv",header=T), experiment_description="original ppsim lhc dataset")
 
 #### 2: Robustness Sampling
+parameters<-c("chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope")
 baseline<- c(0.3, 0.2, 0.04, 0.60, 1.0)
 minvals <- c(0.10, 0.10, 0.015, 0.1, 0.25)
 maxvals <- c(0.9, 0.50, 0.08, 1.0, 5.0)
 incvals <- c(0.1, 0.05, 0.005, 0.05, 0.25)
-## As spartan generates numerous CSV files in this sampling, the only route to add to the database is to generate the sample here, rather than in LHC where
-## csv files could be read in
 generate_robustness_set_in_db(dblink,parameters, baseline, minvals, maxvals, incvals, experiment_id=NULL, experiment_description="PPSim Robustness")
+download_sample_as_csvfile("/home/kja505/Desktop/", dblink, experiment_type="Robustness",experiment_id=1)
+
 
 #### 3: eFAST Sampling
+parameters<-c("chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope")
 num_samples<-65
 num_curves<-3
-generate_efast_set_in_db(dblink, parameters, num_samples, minvals, maxvals, num_curves, experiment_id=NULL, experiment_description="PPSim eFAST")
+minvals <- c(0.10, 0.10, 0.015, 0.1, 0.25,1)
+maxvals <- c(0.9, 0.50, 0.08, 1.0, 5.0,2)
+generate_efast_set_in_db(dblink, parameters, num_samples, minvals, maxvals, num_curves, experiment_id=NULL, experiment_description="PPSim eFAST2")
+download_sample_as_csvfile("/home/kja505/Desktop/", dblink, experiment_type="eFAST",experiment_id=3)
+
 ## Or can add an existing generated set to the database
 parameter_set_path<-"/home/kja505/Downloads/Spartan_Tutorial_Data/eFAST_Spartan2"
 num_curves<-3
@@ -79,13 +87,13 @@ summarise_replicate_efast_runs(dblink, parameters, measures, experiment_id)
 #### 6: Adding Robustness Results to Database
 ## CSV File:
 # In this case, we add the parameters from the tutorial set, don't generate them, such that the parameters can tie up with the results
-parameter_set_path<-"/home/kja505/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured"
+parameter_set_path<-"/home/kja505/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured/OAT_Medians.csv"
 # Only two parameters in this test
 parameters<-c("chemoUpperLinearAdjust","chemoLowerLinearAdjust")
 add_existing_robustness_sample_to_database(dblink, parameter_set_path, parameters, experiment_description="Original PPSim Robustness")
 # Now add the results for this experiment:
 experiment_id<-1
-add_lhc_and_robustness_sim_results_from_csv_file(dblink,"/home/kja505/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured/OAT_Medians.csv", parameters, measures, "Robustness", experiment_id)
+add_lhc_and_robustness_sim_results_from_csv_file(dblink,parameter_set_path, parameters, measures, "Robustness", experiment_id)
 # Now create summary stats from these replicates
 summarise_replicate_robustness_runs(dblink,parameters,measures,experiment_id)
 

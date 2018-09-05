@@ -81,11 +81,11 @@ test_that("generate_robustness_set_in_db", {
   expect_message(generate_robustness_set_in_db(dblink,parameters,c(0.3, 0.2), c(0.10, 0.10), c(0.9, 0.50), c(0.1, 0.05), experiment_description="Robustness Test", experiment_date=Sys.Date()),"Parameter Set Added to Database, with Experiment ID 1")
 
   # Check the correct number of records
-  #expect_equal(nrow(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")),18)
+  expect_equal(nrow(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")),18)
 
   # Now we can check the structure - robustness analysis should complete the paramOfInterest column
   expected_result <- c(rep(parameters[1],9),rep(parameters[2],9))
-  #expect_equal(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,4],expected_result)
+  expect_equal(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,4],expected_result)
 
   expect_true(all(is.na(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,5])))
 
@@ -118,6 +118,7 @@ test_that("generate_efast_set_in_db", {
   expected_result <- c(rep(1,130),rep(2,130),rep(3,130))
   expect_equal(db_result[,5],expected_result)
 
+  close_db_link(dblink)
 
 })
 
@@ -142,5 +143,97 @@ test_that("add_existing_lhc_sample_to_database", {
   expect_true(all(is.na(db_result[,7])))
   expect_true(all(is.na(db_result[,8])))
 
+  close_db_link(dblink)
 
+})
+
+test_that("add_existing_efast_sample_to_database", {
+
+  skip_on_travis()
+  skip_on_cran()
+
+  # Test addition of a new sample
+  dblink<-setup_db_link()
+  delete_database_structure(dblink)
+  parameters<-c("BindProbability","ChemoThreshold","ChemoUpperLinearAdjust","ChemoLowerLinearAdjust","VCAMProbabilityThreshold","VCAMSlope","Dummy")
+  measures<-c("Velocity","Displacement")
+  create_database_structure(dblink, parameters, measures)
+  parameter_set_path<-"/home/kja505/Downloads/Spartan_Tutorial_Data/eFAST_Spartan2"
+  num_curves<-3
+
+  expect_message(add_existing_efast_sample_to_database(dblink, parameter_set_path, parameters, num_curves, experiment_id=NULL),"Parameter Set Added to Database, with Experiment ID 1")
+
+  # Can now check structure as we did previously
+  # Should be 1365
+  db_result<-DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id=1;")
+  expect_equal(nrow(db_result),1365)
+
+  # eFAST also uses the curve column - so check the structure of that
+  expected_result <- c(rep(1,455),rep(2,455),rep(3,455))
+  expect_equal(db_result[,10],expected_result)
+
+  close_db_link(dblink)
+})
+
+test_that("add_existing_robustness_sample_to_database", {
+
+  skip_on_travis()
+  skip_on_cran()
+
+  # Test addition of a new sample
+  dblink<-setup_db_link()
+  delete_database_structure(dblink)
+  parameter_set_path<-"/home/kja505/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured"
+  # Only two parameters in this test
+  parameters<-c("chemoUpperLinearAdjust","chemoLowerLinearAdjust")
+  measures<-c("Velocity","Displacement")
+  create_database_structure(dblink, parameters, measures)
+
+  expect_message(add_existing_robustness_sample_to_database(dblink, parameter_set_path, parameters),"Parameter Sets Added to Database, with Experiment ID 1")
+
+  # Check the correct number of records
+  expect_equal(nrow(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")),23)
+
+  # Now we can check the structure - robustness analysis should complete the paramOfInterest column
+  expected_result <- c(rep(parameters[1],9),rep(parameters[2],14))
+  expect_equal(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,4],expected_result)
+
+  expect_true(all(is.na(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,5])))
+
+  close_db_link(dblink)
+})
+
+test_that("download_sample_as_csvfile", {
+
+  skip_on_travis()
+  skip_on_cran()
+
+  # Test addition of a new sample
+  dblink<-setup_db_link()
+  delete_database_structure(dblink)
+  parameter_set_path<-"/home/kja505/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured"
+  # Only two parameters in this test
+  parameters<-c("chemoUpperLinearAdjust","chemoLowerLinearAdjust")
+  measures<-c("Velocity","Displacement")
+  create_database_structure(dblink, parameters, measures)
+
+  add_existing_robustness_sample_to_database(dblink, parameter_set_path, parameters)
+
+  # Check can download this sample
+  expect_message(download_sample_as_csvfile(getwd(), dblink, experiment_type="Robustness",experiment_id=1),paste("Sample exported as CSV file to ",getwd(),"/generated_sample.csv",sep=""))
+
+  # Open the CSV file and check structure
+  r<-read.csv(file.path(getwd(),"generated_sample.csv"),header=T)
+
+  # For a robustness analysis, this should contain the two parameters and parameter of interest
+  expect_equal(ncol(r),3)
+  expect_equal(nrow(r),23)
+
+  # Column 3 should only contain the parameters
+  expect_true(all(r[,3] %in% parameters))
+
+  # Delete the csv file
+  file.remove(file.path(getwd(),"generated_sample.csv"))
+
+  close_db_link(dblink)
 })

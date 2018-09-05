@@ -17,6 +17,8 @@ add_lhc_and_robustness_sim_results_from_csv_file(dblink, all_results,
 
 \item{measures}{The measures of the simulation that are being assessed}
 
+\item{experiment_type}{Whether this is an LHC or Robustness analysis experiment}
+
 \item{experiment_id}{Experiment ID for the results being added. May be NULL if description and date specified}
 
 \item{experiment_description}{A description of this experiment. May be NULL if adding by experiment ID}

@@ -49,7 +49,7 @@ summarise_replicate_robustness_runs<-function(dblink,parameters,measures,experim
               # Take the median of both columns and store in the matrix
               for(m in 1:length(measures))
               {
-                results_summary[row_ref,m]<-median(as.numeric(set_results[,m]))
+                results_summary[row_ref,m]<-stats::median(as.numeric(set_results[,m]))
               }
               # Param of interest
               results_summary[row_ref,length(measures)+1]<-parameters[p]
@@ -64,7 +64,7 @@ summarise_replicate_robustness_runs<-function(dblink,parameters,measures,experim
         }
         # Now we can add these summarys to the analysed results table
         colnames(results_summary)<-c(measures,"paramOfInterest","summarising_parameter_set_id")
-        RMySQL::dbWriteTable(dblink, value = as.data.frame(results_summary[complete.cases(results_summary), ]),row.names=FALSE,name="spartan_analysed_results", append=TRUE)
+        RMySQL::dbWriteTable(dblink, value = as.data.frame(results_summary[stats::complete.cases(results_summary), ]),row.names=FALSE,name="spartan_analysed_results", append=TRUE)
       }
       else
       {
@@ -105,10 +105,7 @@ summarise_replicate_lhc_runs<-function(dblink, measures, experiment_id=NULL, exp
         number_samples <- as.numeric(DBI::dbGetQuery(dblink,paste("SELECT COUNT(parameter_set_id) AS number_samples FROM spartan_parameters WHERE experiment_id=",experiment_id,";",sep="")))
 
         # Declare a matrix for storing the results
-        if(experiment_type=="LHC")
-          results_summary<-matrix(nrow=number_samples,ncol=length(measures)+1)
-        else if(experiment_type=="Robustness")
-          results_summary<-matrix(nrow=number_samples,ncol=length(measures)+2)
+        results_summary<-matrix(nrow=number_samples,ncol=length(measures)+1)
 
         for(k in 1:number_samples)
         {
@@ -118,7 +115,7 @@ summarise_replicate_lhc_runs<-function(dblink, measures, experiment_id=NULL, exp
           # Take the median of both columns and store in the matrix
           for(m in 1:length(measures))
           {
-            results_summary[k,m]<-median(as.numeric(set_results[,m]))
+            results_summary[k,m]<-stats::median(as.numeric(set_results[,m]))
           }
           # Add parameter set ID
           results_summary[k,length(measures)+1]<-k
@@ -199,7 +196,7 @@ summarise_replicate_efast_runs<-function(dblink, parameters, measures, experimen
               # Take the median of both columns and store in the matrix
               for(m in 1:length(measures))
               {
-                results_summary[row_ref,m]<-median(as.numeric(set_results[,m]))
+                results_summary[row_ref,m]<-stats::median(as.numeric(set_results[,m]))
               }
               # Param of interest
               results_summary[row_ref,length(measures)+1]<-parameters[p]
@@ -217,7 +214,7 @@ summarise_replicate_efast_runs<-function(dblink, parameters, measures, experimen
         # Now we can add this to the database
         colnames(results_summary)<-c(measures,"paramOfInterest","curve","summarising_parameter_set_id")
         # Note the removal of any NA rows here - this should be checked
-        RMySQL::dbWriteTable(dblink, value = as.data.frame(results_summary[complete.cases(results_summary), ]),row.names=FALSE,name="spartan_analysed_results", append=TRUE)
+        RMySQL::dbWriteTable(dblink, value = as.data.frame(results_summary[stats::complete.cases(results_summary), ]),row.names=FALSE,name="spartan_analysed_results", append=TRUE)
       }
     }
   }, error = function(e)

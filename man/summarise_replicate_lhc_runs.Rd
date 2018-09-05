@@ -17,8 +17,6 @@ summarise_replicate_lhc_runs(dblink, measures, experiment_id = NULL,
 \item{experiment_description}{A description of this experiment. May be NULL if adding by experiment ID}
 
 \item{experiment_date}{Date experiment created. May be NULL if adding by experiment ID}
-
-\item{parameters}{The parameters of the simulation that are being analysed}
 }
 \description{
 Summarise replicate runs of LHC parameter sets into summary results table of database
