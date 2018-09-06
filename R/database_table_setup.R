@@ -15,6 +15,7 @@ create_database_structure <- function(dblink, parameters, measures)
     out<-create_parameter_values_table(dblink,parameters)
     out<-create_simulation_results_table(dblink, measures)
     out<-create_analysed_results_table(dblink, measures)
+    create_stats_table(dblink, parameters, measures)
     message("SpartanDB database structure created")
   },
   error = function(e)
