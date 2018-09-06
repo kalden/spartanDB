@@ -132,7 +132,7 @@ test_that("add_existing_lhc_sample_to_database", {
   delete_database_structure(dblink)
   create_database_structure(dblink, c("chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope"), c("Velocity","Displacement"))
 
-  expect_message(add_existing_lhc_sample_to_database(dblink, read.csv("/home/kja505/Dropbox/RoboCalc/LHC_Params.csv",header=T), experiment_description="Test Existing LHC Set", experiment_date = Sys.Date()),
+  expect_message(add_existing_lhc_sample_to_database(dblink, read.csv("~/Dropbox/RoboCalc/LHC_Params.csv",header=T), experiment_description="Test Existing LHC Set", experiment_date = Sys.Date()),
                                                     "Parameter Set Added to Database, with Experiment ID 1")
 
   # Check correct number of records
@@ -158,7 +158,7 @@ test_that("add_existing_efast_sample_to_database", {
   parameters<-c("BindProbability","ChemoThreshold","ChemoUpperLinearAdjust","ChemoLowerLinearAdjust","VCAMProbabilityThreshold","VCAMSlope","Dummy")
   measures<-c("Velocity","Displacement")
   create_database_structure(dblink, parameters, measures)
-  parameter_set_path<-"/home/kja505/Downloads/Spartan_Tutorial_Data/eFAST_Spartan2"
+  parameter_set_path<-"~/Downloads/Spartan_Tutorial_Data/eFAST_Spartan2"
   num_curves<-3
 
   expect_message(add_existing_efast_sample_to_database(dblink, parameter_set_path, parameters, num_curves, experiment_id=NULL),"Parameter Set Added to Database, with Experiment ID 1")
@@ -183,7 +183,7 @@ test_that("add_existing_robustness_sample_to_database", {
   # Test addition of a new sample
   dblink<-setup_db_link()
   delete_database_structure(dblink)
-  parameter_set_path<-"/home/kja505/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured"
+  parameter_set_path<-"~/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured"
   # Only two parameters in this test
   parameters<-c("chemoUpperLinearAdjust","chemoLowerLinearAdjust")
   measures<-c("Velocity","Displacement")
@@ -211,7 +211,7 @@ test_that("download_sample_as_csvfile", {
   # Test addition of a new sample
   dblink<-setup_db_link()
   delete_database_structure(dblink)
-  parameter_set_path<-"/home/kja505/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured"
+  parameter_set_path<-"~/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured"
   # Only two parameters in this test
   parameters<-c("chemoUpperLinearAdjust","chemoLowerLinearAdjust")
   measures<-c("Velocity","Displacement")

@@ -4,11 +4,14 @@
 \alias{create_field_string}
 \title{Creates the mySQL string to create columns for each parameter, or measure, required in the table}
 \usage{
-create_field_string(field_list)
+create_field_string(field_list, add_analysis_specific_fields = TRUE)
 }
 \arguments{
 \item{field_list}{List of columns required in the database. Could be parameters or simulation
 response measures.}
+
+\item{add_analysis_specific_fields}{Whether paramOfInterest and curve should be added. Not added in
+all cases of table creation}
 }
 \value{
 String to add to a mySQL query when creating a table

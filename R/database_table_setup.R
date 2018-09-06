@@ -56,8 +56,10 @@ create_experiments_table<-function(dblink)
 #' Creates the mySQL string to create columns for each parameter, or measure, required in the table
 #' @param field_list List of columns required in the database. Could be parameters or simulation
 #' response measures.
+#' @param add_analysis_specific_fields Whether paramOfInterest and curve should be added. Not added in
+#' all cases of table creation
 #' @return String to add to a mySQL query when creating a table
-create_field_string <- function(field_list)
+create_field_string <- function(field_list, add_analysis_specific_fields=TRUE)
 {
   field_string<-""
   for(entry in field_list)
@@ -67,8 +69,15 @@ create_field_string <- function(field_list)
 
   # Add on two others, one for parameter of interest and one for curve
   # These are used by robustness and efast sampling, but should remain as empty for lhc
-  field_string <- paste(field_string, "paramOfInterest VARCHAR(45),",sep="")
-  field_string <- paste(field_string, "curve INT,",sep="")
+  if(add_analysis_specific_fields)
+  {
+    field_string <- paste(field_string, "paramOfInterest VARCHAR(45),",sep="")
+    field_string <- paste(field_string, "curve INT,",sep="")
+  }
+  else
+    # remove final comma
+    field_string<-substr(field_string,1,nchar(field_string)-1)
+
 
   return(field_string)
 }
@@ -186,17 +195,16 @@ create_analysed_results_table <- function(dblink, measures)
   tryCatch( {
     field_string <- create_field_string(measures)
 
-    query<-paste("CREATE TABLE spartan_analysed_results (analysed_set_id INT NOT NULL AUTO_INCREMENT,",
+    query<-paste("CREATE TABLE spartan_analysed_results (
+      analysed_set_id INT NOT NULL AUTO_INCREMENT,",
                  field_string,
-                 "summarising_parameter_set_id INT NOT NULL,
+      "summarising_parameter_set_id INT NOT NULL,
+      experiment_set_id INT NOT NULL,
       PRIMARY KEY (analysed_set_id),
-      UNIQUE INDEX analysed_set_id_UNIQUE (analysed_set_id ASC),
-      INDEX summarising_parameter_set_id_idx (summarising_parameter_set_id ASC),
-      CONSTRAINT summarising_parameter_set_id
-      FOREIGN KEY (summarising_parameter_set_id)
-      REFERENCES spartan_parameters (parameter_set_id)
-      ON DELETE NO ACTION
-      ON UPDATE NO ACTION);",sep="")
+      INDEX(summarising_parameter_set_id),
+      INDEX(experiment_set_id),
+      FOREIGN KEY (summarising_parameter_set_id) REFERENCES spartan_parameters(parameter_set_id),
+      FOREIGN KEY (experiment_set_id) REFERENCES spartan_experiment(experiment_id));",sep="")
 
     RMySQL::dbSendQuery(dblink, query)
     message("Spartan Analysed Results Table Created")
@@ -205,5 +213,28 @@ create_analysed_results_table <- function(dblink, measures)
   {
     message(paste("Error in creating Analysed Results table in database. Returned Error:\n",e,sep=""))
   })
+}
 
+create_stats_table<-function(dblink, parameters, measures)
+{
+  tryCatch( {
+
+    query<-paste("CREATE TABLE spartan_generated_stats (
+      stat_id INT NOT NULL AUTO_INCREMENT,
+                  parameter VARCHAR(45) NOT NULL,
+                  measure VARCHAR(45) NOT NULL,
+                  statistic_1 VARCHAR(45) NOT NULL,
+                  statistic_2 VARCHAR(45),
+      experiment_set_id INT NOT NULL,
+      PRIMARY KEY (stat_id),
+      INDEX(experiment_set_id),
+      FOREIGN KEY (experiment_set_id) REFERENCES spartan_experiment(experiment_id));",sep="")
+
+    RMySQL::dbSendQuery(dblink, query)
+    message("Spartan Generated Statistics Table Created")
+
+  },error = function(e)
+  {
+    message(paste("Error in creating Stats table in database. Returned Error:\n",e,sep=""))
+  })
 }

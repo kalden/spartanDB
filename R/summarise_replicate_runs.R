@@ -24,7 +24,7 @@ summarise_replicate_robustness_runs<-function(dblink,parameters,measures,experim
       {
         # Get the number of parameter sets in the experiment, to set up the matrix
         number_samples<-DBI::dbGetQuery(dblink,paste("SELECT COUNT(parameter_set_id) AS number_samples FROM spartan_parameters WHERE experiment_id=",experiment_id,";",sep=""))
-        results_summary<-matrix(nrow=as.numeric(number_samples),ncol=length(measures)+2)
+        results_summary<-matrix(nrow=as.numeric(number_samples),ncol=length(measures)+3)
         row_ref<-1
 
         # Now process each parameter in turn
@@ -55,6 +55,8 @@ summarise_replicate_robustness_runs<-function(dblink,parameters,measures,experim
               results_summary[row_ref,length(measures)+1]<-parameters[p]
               # Add parameter set ID
               results_summary[row_ref,length(measures)+2]<-s
+              # Add experiment ID
+              results_summary[row_ref, length(measures)+3]<-experiment_id
             }
 
             # Still increase the row reference, we'll remove the NA's when adding to the database
@@ -63,7 +65,7 @@ summarise_replicate_robustness_runs<-function(dblink,parameters,measures,experim
           }
         }
         # Now we can add these summarys to the analysed results table
-        colnames(results_summary)<-c(measures,"paramOfInterest","summarising_parameter_set_id")
+        colnames(results_summary)<-c(measures,"paramOfInterest","summarising_parameter_set_id","experiment_set_id")
         RMySQL::dbWriteTable(dblink, value = as.data.frame(results_summary[stats::complete.cases(results_summary), ]),row.names=FALSE,name="spartan_analysed_results", append=TRUE)
       }
       else
@@ -105,7 +107,7 @@ summarise_replicate_lhc_runs<-function(dblink, measures, experiment_id=NULL, exp
         number_samples <- as.numeric(DBI::dbGetQuery(dblink,paste("SELECT COUNT(parameter_set_id) AS number_samples FROM spartan_parameters WHERE experiment_id=",experiment_id,";",sep="")))
 
         # Declare a matrix for storing the results
-        results_summary<-matrix(nrow=number_samples,ncol=length(measures)+1)
+        results_summary<-matrix(nrow=number_samples,ncol=length(measures)+2)
 
         for(k in 1:number_samples)
         {
@@ -119,10 +121,12 @@ summarise_replicate_lhc_runs<-function(dblink, measures, experiment_id=NULL, exp
           }
           # Add parameter set ID
           results_summary[k,length(measures)+1]<-k
+          # Add experiment ID
+          results_summary[k, length(measures)+2]<-experiment_id
         }
 
         # Now we can add these summarys to the analysed results table
-        colnames(results_summary)<-c(measures,"summarising_parameter_set_id")
+        colnames(results_summary)<-c(measures,"summarising_parameter_set_id","experiment_set_id")
         RMySQL::dbWriteTable(dblink, value = as.data.frame(results_summary),row.names=FALSE,name="spartan_analysed_results", append=TRUE)
       }
       else
@@ -169,7 +173,7 @@ summarise_replicate_efast_runs<-function(dblink, parameters, measures, experimen
         number_samples <- as.numeric(DBI::dbGetQuery(dblink,paste("SELECT COUNT(parameter_set_id) AS number_samples FROM spartan_parameters WHERE experiment_id=",experiment_id," AND curve=1 AND paramOfInterest=1;"
     ,sep="")))
 
-        results_summary<-matrix(nrow=number_samples*num_curves*length(parameters),ncol=length(measures)+3)
+        results_summary<-matrix(nrow=number_samples*num_curves*length(parameters),ncol=length(measures)+4)
 
         row_ref<-1
         # Now we can process each curve and parameter set
@@ -204,6 +208,8 @@ summarise_replicate_efast_runs<-function(dblink, parameters, measures, experimen
               results_summary[row_ref,length(measures)+2]<-c
               # Add parameter set ID
               results_summary[row_ref,length(measures)+3]<-s
+              # Add experiment ID
+              results_summary[row_ref, length(measures)+4]<-experiment_id
 
               row_ref<-row_ref+1
 
@@ -212,7 +218,7 @@ summarise_replicate_efast_runs<-function(dblink, parameters, measures, experimen
         }
 
         # Now we can add this to the database
-        colnames(results_summary)<-c(measures,"paramOfInterest","curve","summarising_parameter_set_id")
+        colnames(results_summary)<-c(measures,"paramOfInterest","curve","summarising_parameter_set_id","experiment_set_id")
         # Note the removal of any NA rows here - this should be checked
         RMySQL::dbWriteTable(dblink, value = as.data.frame(results_summary[stats::complete.cases(results_summary), ]),row.names=FALSE,name="spartan_analysed_results", append=TRUE)
       }

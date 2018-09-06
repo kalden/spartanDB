@@ -6,7 +6,7 @@
 library(RMySQL)
 library(spartan)
 # R needs a full path to find the settings file
-rmysql.settingsfile<-"/home/kja505/Documents/sql_settings/newspaper_search_results.cnf"
+rmysql.settingsfile<-"~/Documents/sql_settings/spartanDB.cnf"
 rmysql.db<-"spartan_ppsim"
 dblink<-dbConnect(MySQL(),default.file=rmysql.settingsfile,group=rmysql.db)
 
@@ -61,15 +61,20 @@ add_existing_efast_sample_to_database(dblink, parameter_set_path, parameters, nu
 #### 4: Adding LHC Results to Database
 ## Route 1: From Spartan 2, all results can be provided in a single CSV file - this method processes that file and puts all results in the DB
 ## In this case, we add the parameters from the tutorial set, don't generate them, such that the parameters can tie up with the results
-add_existing_lhc_sample_to_database(dblink, read.csv("/home/kja505/Downloads/Spartan_Tutorial_Data/LHC_Spartan2/Tutorial_Parameters_for_Runs.csv",header=T), experiment_description="original ppsim lhc dataset")
+parameters<-c("thresholdBindProbability","chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope")
+add_existing_lhc_sample_to_database(dblink, read.csv("~/Downloads/Spartan_Tutorial_Data/LHC_Spartan2/Tutorial_Parameters_for_Runs.csv",header=T), experiment_description="original ppsim lhc dataset")
 # Now add the results for that experiment
 experiment_id<-1 # Could have also added by description and date - these removed as default to NULL if ID specified
-add_lhc_and_robustness_sim_results_from_csv_file(dblink, "/home/kja505/Downloads/Spartan_Tutorial_Data/LHC_Spartan2/LHC_AllResults.csv", parameters, measures, "LHC", experiment_id)
+add_lhc_and_robustness_sim_results_from_csv_file(dblink, "~/Downloads/Spartan_Tutorial_Data/LHC_Spartan2/LHC_AllResults.csv", parameters, measures, "LHC", experiment_id)
 # Now analyse the replicates to create a summary result
 summarise_replicate_lhc_runs(dblink, measures, experiment_id)
+# Now we have the data in a format that spartan can process - so we'll do the analysis
+generate_lhc_analysis(dblink, parameters, measures, experiment_id=1)
+# Graph an experiment - the graphs are never stored in the database, but we provide methods to graph for an experiment_id
+measure_scale<-c("Velocity","Displacement")
+output_directory<-"~/Desktop/"
+graph_lhc_analysis(dblink, parameters, measures, measure_scale, output_directory, experiment_id=1, output_type=c("PDF"))
 
-## Route 2: It may be the case that a user wishes to work with the old folder structure, and as such results can be input that way too using this wrapper
-## TODO
 
 #### 5: Adding eFAST Results to Database
 ## CSV file:
