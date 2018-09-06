@@ -87,6 +87,7 @@ experiment_id<-1 # Could have also added by description and date - these removed
 add_efast_sim_results_from_csv_files(dblink, parameter_set_path, parameters, measures, num_curves, experiment_id)
 # Now we can create summary stats from the replicates:
 summarise_replicate_efast_runs(dblink, parameters, measures, experiment_id)
+# Now do the eFAST Analysis
 
 
 #### 6: Adding Robustness Results to Database
