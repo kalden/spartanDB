@@ -15,7 +15,7 @@ create_database_structure <- function(dblink, parameters, measures)
     out<-create_parameter_values_table(dblink,parameters)
     out<-create_simulation_results_table(dblink, measures)
     out<-create_analysed_results_table(dblink, measures)
-    create_stats_table(dblink, parameters, measures)
+    out<-create_stats_table(dblink, parameters, measures)
     message("SpartanDB database structure created")
   },
   error = function(e)
@@ -116,6 +116,12 @@ create_parameter_field_string<-function(parameters, values)
 create_parameter_values_table<-function(dblink, parameters)
 {
   tryCatch( {
+
+    # For eFAST, there is a Dummy parameter. This should exist in the database incase eFAST is used
+    # So we add it, if the user has not specified it in their parameters
+    if(!"Dummy" %in% parameters & !"dummy" %in% parameters)
+      parameters<-c(parameters,"Dummy")
+
     field_string <- create_field_string(parameters)
 
     query<-paste("CREATE TABLE spartan_parameters (parameter_set_id INT NOT NULL AUTO_INCREMENT,",
@@ -216,9 +222,22 @@ create_analysed_results_table <- function(dblink, measures)
   })
 }
 
+#' Adds a table for the spartan generated statistics for each experiment, such as A-Test scores and PRCCs
+#'
+#' @param dblink A link to the database in which this table is being created
+#' @param measures The measures of the simulation that are being assessed
+#' @param parameters The parameters of the simulation being assessed
+#' @export
 create_stats_table<-function(dblink, parameters, measures)
 {
   tryCatch( {
+
+    # For eFAST, there is a Dummy parameter. This should exist in the database incase eFAST is used
+    # So we add it, if the user has not specified it in their parameters
+    if(!"Dummy" %in% parameters & !"dummy" %in% parameters)
+      parameters<-c(parameters,"Dummy")
+    else if("dummy" %in% parameters) # Just make it upper case to match rest of code.
+      parameters[match("dummy",parameters)]<-"Dummy"
 
     query<-paste("CREATE TABLE spartan_generated_stats (
       stat_id INT NOT NULL AUTO_INCREMENT,
@@ -226,6 +245,13 @@ create_stats_table<-function(dblink, parameters, measures)
                   measure VARCHAR(45) NOT NULL,
                   statistic_1 VARCHAR(45) NOT NULL,
                   statistic_2 VARCHAR(45),
+                  statistic_3 VARCHAR(45),
+                  statistic_4 VARCHAR(45),
+                  statistic_5 VARCHAR(45),
+                  statistic_6 VARCHAR(45),
+                  statistic_7 VARCHAR(45),
+                  statistic_8 VARCHAR(45),
+                  statistic_9 VARCHAR(45),
       experiment_set_id INT NOT NULL,
       PRIMARY KEY (stat_id),
       INDEX(experiment_set_id),

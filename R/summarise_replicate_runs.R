@@ -153,6 +153,13 @@ summarise_replicate_lhc_runs<-function(dblink, measures, experiment_id=NULL, exp
 #' @export
 summarise_replicate_efast_runs<-function(dblink, parameters, measures, experiment_id=NULL, experiment_description=NULL, experiment_date=NULL)
 {
+  # For eFAST, there is a Dummy parameter. This should exist in the database incase eFAST is used
+  # So we add it, if the user has not specified it in their parameters
+  if(!"Dummy" %in% parameters & !"dummy" %in% parameters)
+    parameters<-c(parameters,"Dummy")
+  else if("dummy" %in% parameters) # Just make it upper case to match rest of code.
+    parameters[match("dummy",parameters)]<-"Dummy"
+
   tryCatch({
 
     # Check the experiment and parameters exist
@@ -168,9 +175,9 @@ summarise_replicate_efast_runs<-function(dblink, parameters, measures, experimen
       if(num_results>0)
       {
         # eFAST a bit more complex, we have a number of curves and a number of samples - we can use the DB to recover both
-        num_curves<-as.numeric(DBI::dbGetQuery(dblink, paste("SELECT MAX(curve) FROM spartan_results WHERE experiment_set_id=",experiment_id,";",sep="")))
+        num_curves<-max(DBI::dbGetQuery(dblink, paste("SELECT DISTINCT curve FROM spartan_parameters WHERE experiment_id=",experiment_id,";",sep="")))
         # Now can get the number of samples for the first curve, for the first parameter
-        number_samples <- as.numeric(DBI::dbGetQuery(dblink,paste("SELECT COUNT(parameter_set_id) AS number_samples FROM spartan_parameters WHERE experiment_id=",experiment_id," AND curve=1 AND paramOfInterest=1;"
+        number_samples <- as.numeric(DBI::dbGetQuery(dblink,paste("SELECT COUNT(parameter_set_id) AS number_samples FROM spartan_parameters WHERE experiment_id=",experiment_id," AND curve=1 AND paramOfInterest='",parameters[1],"';"
     ,sep="")))
 
         results_summary<-matrix(nrow=number_samples*num_curves*length(parameters),ncol=length(measures)+4)
@@ -186,16 +193,20 @@ summarise_replicate_efast_runs<-function(dblink, parameters, measures, experimen
             #set_results <- DBI::dbGetQuery(dblink,paste("SELECT ",toString(measures)," FROM spartan_results WHERE experiment_set_id=",experiment_id," AND curve=",c," AND paramOfInterest=",p,";",sep=""))
 
             # Issue now is that the parameter_set_id's do not reset for each curve/parameter pair, so we need to work out the min and max of this addition and then process the id's inbetween
-            min_id<-as.numeric(DBI::dbGetQuery(dblink,paste("SELECT MIN(parameter_set_id) FROM spartan_results WHERE experiment_set_id=",experiment_id," AND curve=",c," AND paramOfInterest=",p,";",sep="")))
-            max_id<-as.numeric(DBI::dbGetQuery(dblink,paste("SELECT MAX(parameter_set_id) FROM spartan_results WHERE experiment_set_id=",experiment_id," AND curve=",c," AND paramOfInterest=",p,";",sep="")))
+            param_range<-DBI::dbGetQuery(dblink,paste("SELECT parameter_set_id,",toString(measures)," FROM spartan_results WHERE experiment_set_id=",experiment_id," AND curve=",c," AND paramOfInterest='",parameters[p],"';",sep=""))
+            min_id<-min(param_range[,1])
+            max_id<-max(param_range[,1])
 
             # Now process each of these samples
             for(s in min_id:max_id)
             {
+              # Subset the results by parameter set id
+              set_results<-subset(param_range,param_range$parameter_set_id==s,select=measures)
+
               #print(s)
               # Get the results for this parameter set
-              set_results <- DBI::dbGetQuery(dblink,paste("SELECT ",toString(measures)," FROM spartan_results WHERE experiment_set_id=",experiment_id," AND curve=",c," AND paramOfInterest=",p,
-                    " AND parameter_set_id=",s,";",sep=""))
+              #set_results <- DBI::dbGetQuery(dblink,paste("SELECT ",toString(measures)," FROM spartan_results WHERE experiment_set_id=",experiment_id," AND curve=",c," AND paramOfInterest='",parameters[p],
+              #      "' AND parameter_set_id=",s,";",sep=""))
 
               # Take the median of both columns and store in the matrix
               for(m in 1:length(measures))

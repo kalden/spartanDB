@@ -9,6 +9,7 @@
 delete_database_structure <- function(dblink)
 {
   tryCatch( {
+    out<-delete_statistics_table(dblink)
     out<-delete_analysed_results_table(dblink)
     out<-delete_results_table(dblink)
     out<-delete_parameters_table(dblink)
@@ -18,6 +19,14 @@ delete_database_structure <- function(dblink)
   {
     message(paste("Error in deleting database structure. Returned Error:\n",e,sep=""))
   })
+}
+
+#' Remove the statistics table from the database, if this exists
+#'
+#' @param dblink A link to the database in which this table is being created
+delete_statistics_table <- function(dblink)
+{
+  DBI::dbRemoveTable(dblink,"spartan_generated_stats")
 }
 
 #' Remove the experiments table from the database, if this exists

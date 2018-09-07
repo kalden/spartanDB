@@ -3,6 +3,7 @@
 ^\.git$
 ^cran-comments.md
 ^test_script.R
+^\test_data$
 
 ^\.travis\.yml$
 ^LICENSE$

@@ -57,6 +57,13 @@ add_lhc_and_robustness_sim_results_from_csv_file <- function(dblink, all_results
 #' @export
 add_efast_sim_results_from_csv_files <- function(dblink, results_folder_path, parameters, measures, num_curves, experiment_id=NULL, experiment_description=NULL, experiment_date=NULL)
 {
+  # For eFAST, there is a Dummy parameter. This should exist in the database incase eFAST is used
+  # So we add it, if the user has not specified it in their parameters
+  if(!"Dummy" %in% parameters & !"dummy" %in% parameters)
+    parameters<-c(parameters,"Dummy")
+  else if("dummy" %in% parameters) # Just make it upper case to match rest of code.
+    parameters[match("dummy",parameters)]<-"Dummy"
+
   tryCatch({
     # Firstly we need to check the experiment exists, and has associated parameter sets in the database
     # Though experiment_id may have been specified, it may not have been if searching DB by description and date. Thus the check function
@@ -76,7 +83,7 @@ add_efast_sim_results_from_csv_files <- function(dblink, results_folder_path, pa
           # Providing this is read in correctly, we can then process these into the DB
           if(nrow(results)>0)
           {
-            success <- add_replicate_runs_to_database(dblink, parameters, measures, results, experiment_id,experiment_type="eFAST",curve=c,param_of_interest = parameters)
+            success <- add_replicate_runs_to_database(dblink, parameters, measures, results, experiment_id,experiment_type="eFAST",curve=c,param_of_interest = parameters[p])
             if(!success)
               stop("Error in Adding LHC results from CSV file")
             else
@@ -279,6 +286,21 @@ add_replicate_runs_to_database<-function(dblink, parameters, measures, all_resul
       }
 
       block_to_add_to_database<-rbind(block_to_add_to_database,f)
+    }
+
+    # Now there may still be the final set to add to the database, so write any left over results
+    if(nrow(block_to_add_to_database)>0)
+    {
+      if(experiment_type=="LHC")
+        colnames(block_to_add_to_database)<-c(measures,"parameter_set_id","experiment_set_id")
+      else if(experiment_type=="eFAST")
+        colnames(block_to_add_to_database)<-c(measures,"parameter_set_id","experiment_set_id","paramOfInterest","curve")
+      else if(experiment_type=="Robustness")
+        colnames(block_to_add_to_database)<-c(measures,"parameter_set_id","experiment_set_id","paramOfInterest")
+
+      #print(current_parameter_set)
+      #print(paste("Parameter Set: ",parameter_set_id," Writing ",nrow(block_to_add_to_database)," rows",sep=""))
+      a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(block_to_add_to_database),row.names=FALSE,name="spartan_results", append=TRUE)
     }
 
     return(TRUE)

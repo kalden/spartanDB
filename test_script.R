@@ -10,13 +10,12 @@ rmysql.settingsfile<-"~/Documents/sql_settings/spartanDB.cnf"
 rmysql.db<-"spartan_ppsim"
 dblink<-dbConnect(MySQL(),default.file=rmysql.settingsfile,group=rmysql.db)
 
-# Simulation Settings
-#parameters<-c("thresholdBindProbability","chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope")
-# Only two parameters in the robustness analysis test
-#parameters<-c("chemoUpperLinearAdjust","chemoLowerLinearAdjust")
-# Slightly different names in eFAST set
-#parameters<-c("BindProbability","ChemoThreshold","ChemoUpperLinearAdjust","ChemoLowerLinearAdjust","VCAMProbabilityThreshold","VCAMSlope","Dummy")
+parameters<-c("stableBindProbability","chemokineExpressionThreshold","initialChemokineExpressionValue","maxChemokineExpressionValue","maxProbabilityOfAdhesion","adhesionFactorExpressionSlope")
 measures<-c("Velocity","Displacement")
+baseline<- c(50,0.3, 0.2, 0.04, 0.60, 1.0)
+minvals <- c(0, 0.10, 0.10, 0.015, 0.1, 0.25)
+maxvals <- c(100, 0.9, 0.50, 0.08, 1.0, 5.0)
+incvals <- c(10, 0.1, 0.05, 0.005, 0.05, 0.25)
 
 # Delete the current database structure if there already
 delete_database_structure(dblink)
@@ -35,20 +34,14 @@ add_existing_lhc_sample_to_database(dblink, read.csv("/home/kja505/Dropbox/RoboC
 
 #### 2: Robustness Sampling
 parameters<-c("chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope")
-baseline<- c(0.3, 0.2, 0.04, 0.60, 1.0)
-minvals <- c(0.10, 0.10, 0.015, 0.1, 0.25)
-maxvals <- c(0.9, 0.50, 0.08, 1.0, 5.0)
-incvals <- c(0.1, 0.05, 0.005, 0.05, 0.25)
+
 generate_robustness_set_in_db(dblink,parameters, baseline, minvals, maxvals, incvals, experiment_id=NULL, experiment_description="PPSim Robustness")
 download_sample_as_csvfile("/home/kja505/Desktop/", dblink, experiment_type="Robustness",experiment_id=1)
 
 
 #### 3: eFAST Sampling
-parameters<-c("chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope")
 num_samples<-65
 num_curves<-3
-minvals <- c(0.10, 0.10, 0.015, 0.1, 0.25,1)
-maxvals <- c(0.9, 0.50, 0.08, 1.0, 5.0,2)
 generate_efast_set_in_db(dblink, parameters, num_samples, minvals, maxvals, num_curves, experiment_id=NULL, experiment_description="PPSim eFAST2")
 download_sample_as_csvfile("/home/kja505/Desktop/", dblink, experiment_type="eFAST",experiment_id=3)
 
@@ -61,8 +54,8 @@ add_existing_efast_sample_to_database(dblink, parameter_set_path, parameters, nu
 #### 4: Adding LHC Results to Database
 ## Route 1: From Spartan 2, all results can be provided in a single CSV file - this method processes that file and puts all results in the DB
 ## In this case, we add the parameters from the tutorial set, don't generate them, such that the parameters can tie up with the results
-parameters<-c("thresholdBindProbability","chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope")
-add_existing_lhc_sample_to_database(dblink, read.csv("~/Downloads/Spartan_Tutorial_Data/LHC_Spartan2/Tutorial_Parameters_for_Runs.csv",header=T), experiment_description="original ppsim lhc dataset")
+data(pregenerated_lhc)
+add_existing_lhc_sample_to_database(dblink, pregenerated_lhc, experiment_description="original ppsim lhc dataset")
 # Now add the results for that experiment
 experiment_id<-1 # Could have also added by description and date - these removed as default to NULL if ID specified
 add_lhc_and_robustness_sim_results_from_csv_file(dblink, "~/Downloads/Spartan_Tutorial_Data/LHC_Spartan2/LHC_AllResults.csv", parameters, measures, "LHC", experiment_id)
@@ -79,15 +72,24 @@ graph_lhc_analysis(dblink, parameters, measures, measure_scale, output_directory
 #### 5: Adding eFAST Results to Database
 ## CSV file:
 # In this case, we add the parameters from the tutorial set, don't generate them, such that the parameters can tie up with the results
-parameter_set_path<-"/home/kja505/Downloads/Spartan_Tutorial_Data/eFAST_Spartan2"
+# Pregenerated eFAST sample now part of the package
+# Note eFAST need
+dir.create(file.path(getwd(), "efast"), showWarnings = FALSE)
+unzip(system.file("extdata","pregenerated_efast_sample.zip",package="spartanDB"),exdir=file.path(getwd(), "efast"))
 num_curves<-3
-add_existing_efast_sample_to_database(dblink, parameter_set_path, parameters, num_curves,experiment_description="Original PPSim eFAST")
-# Now add the results for this experiment
+add_existing_efast_sample_to_database(dblink, file.path(getwd(), "efast"), parameters, num_curves,experiment_description="Original PPSim eFAST")
+
+# Now add the results for this experiment - file available online, we're going to extract into the same folder as created for the samples
+sample_results<-"/home/kja505/Documents/spartanDB/test_data/eFAST_Sample_Outputs.zip"
+unzip(sample_results,exdir=file.path(getwd(), "efast"))
 experiment_id<-1 # Could have also added by description and date - these removed as default to NULL if ID specified
-add_efast_sim_results_from_csv_files(dblink, parameter_set_path, parameters, measures, num_curves, experiment_id)
+add_efast_sim_results_from_csv_files(dblink, file.path(getwd(), "efast"), parameters, measures, num_curves, experiment_id)
 # Now we can create summary stats from the replicates:
 summarise_replicate_efast_runs(dblink, parameters, measures, experiment_id)
 # Now do the eFAST Analysis
+
+# Delete the extracted files
+unlink(file.path(getwd(), "efast"), recursive=TRUE)
 
 
 #### 6: Adding Robustness Results to Database

@@ -105,6 +105,19 @@ A message will be returned stating that the parameter set has been added to the 
 
 ### Parameter Analysis
 
+For simulations that require replicate executions to obtain a representative result for a given parameter set, you can store all replicates in the spartan_results database table. This method assumes that all the results are in one CSV file, where the columns are the parameter values and simulation responses. This file can be created with methods available in spartan from raw simulation result files - see the spartan vignette for more information if needed. In the example below we use data from the spartan tutorial, which was shortened to two parameters to reduce the size of the tutorial data download.
+
+```{r,eval=FALSE}
+parameter_set_path<-"/home/user/full_path_to_csv_result_file.csv"
+simulation_output_measures<-c("Velocity","Displacement")
+parameters<-c("chemoUpperLinearAdjust","chemoLowerLinearAdjust")
+# You either need to know (1) the ID of this experiment in the database, or (2) the experiment description and date entered when creating the sample in the steps in the previous section
+add_lhc_and_robustness_sim_results_from_csv_file(dblink,parameter_set_path, parameters, simulation_output_measures, experiment_type="Robustness", experiment_id=1)
+# or by date and description
+add_lhc_and_robustness_sim_results_from_csv_file(dblink,parameter_set_path, parameters, simulation_output_measures, experiment_type="Robustness", 
+                                                 experiment_date="2018-09-03",experiment_description = "PPSim Robustness")
+```
+
 ## SpartanDB with Spartan Technique 3: Latin-hypercube analysis
 
 Similarly to the above, methods are provided to generate sets of parameter values using a hypercube, and then produce and store the analysis of simulation executions run under those conditions. Again for full detail of the implementation of the technique, see the spartan vignettes.
@@ -140,6 +153,19 @@ add_existing_lhc_sample_to_database(dblink, pre_generated_sample, experiment_des
 ```
 
 ### Parameter Analysis
+
+Similarly to robustness analysis above, replicate executions of generated latin-hypercube parameter sets are stored in the spartan_results database table. This method assumes that all the results are in one CSV file, where the columns are the parameter values and simulation responses. This file can be created with methods available in spartan from raw simulation result files - see the spartan vignette for more information if needed. In the example below we use data from the spartan tutorial, the data files for which are available for download with the spartan package.
+
+```{r,eval=FALSE}
+parameter_set_path<-"/home/user/full_path_to_csv_result_file.csv"
+simulation_output_measures<-c("Velocity","Displacement")
+parameters<-c("chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope")
+# You either need to know (1) the ID of this experiment in the database, or (2) the experiment description and date entered when creating the sample in the steps in the previous section
+add_lhc_and_robustness_sim_results_from_csv_file(dblink,parameter_set_path, parameters, simulation_output_measures, experiment_type="LHC", experiment_id=1)
+# or by date and description
+add_lhc_and_robustness_sim_results_from_csv_file(dblink,parameter_set_path, parameters, simulation_output_measures, experiment_type="LHC", 
+                                                 experiment_date="2018-09-03",experiment_description = "PPSim Robustness")
+```
 
 ## SpartanDB with Spartan Technique 4: Extended Fourier Amplitude Sampling Test (eFAST)
 
@@ -177,6 +203,21 @@ add_existing_efast_sample_to_database(dblink, parameter_set_path, parameters, nu
 ```
 
 ### Parameter Analysis
+
+As above, replicate executions of generated eFAST parameter sets are stored in the spartan_results database table. However, this method assumes that there are a number of result files, one per parameter/re-sample curve pair, as described in the description of this analysis approach in the spartan package. Similarly to the two methods above, spartan does contain methods to create these files from raw simulation result files - see the spartan vignette for more information if needed. In the example below we use data from the spartan tutorial, the data files for which are available for download with the spartan package.
+
+```{r,eval=FALSE}
+parameter_set_path<-"/home/user/path_to_all_curve_csv_result_files/"
+parameters<-c("chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope")
+number_curves<-3
+simulation_output_measures<-c("Velocity","Displacement")
+# Simiarly to the previous two techniques, you will need either experiment ID or experiment description and date to add these to the database
+add_efast_sim_results_from_csv_files(dblink, parameter_set_path, parameters, simulation_output_measures, number_curves, experiment_id)
+# or
+add_efast_sim_results_from_csv_files(dblink, parameter_set_path, parameters, simulation_output_measures, number_curves, 
+                                     experiment_description = "Original PPSim eFAST", experiment_date="2018-09-03")
+```
+
 
 Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format:
 

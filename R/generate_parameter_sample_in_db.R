@@ -82,6 +82,16 @@ generate_efast_set_in_db <- function(dblink, parameters, num_samples, minvals, m
   # Flag to store if a new experiment is created, in case rollback is required on sample generation error
   new_experiment_flag <- set_new_experiment_flag(experiment_id)
 
+  # For eFAST, there is a Dummy parameter. So we add it, if the user has not specified it in their parameters. Range doesn't matter
+  if(!"Dummy" %in% parameters & !"dummy" %in% parameters)
+  {
+    parameters<-c(parameters,"Dummy")
+    minvals<-c(minvals,1)
+    maxvals<-c(maxvals,2)
+  }
+  else if("dummy" %in% parameters) # Just make it upper case to match rest of code. Assumed min and max also stated
+    parameters[match("dummy",parameters)]<-"Dummy"
+
   tryCatch({
 
     experiment_id <- check_experiment_id(dblink, experiment_id, "eFAST", experiment_date, experiment_description)
@@ -214,6 +224,13 @@ add_existing_efast_sample_to_database<-function(dblink, parameter_set_path, para
 {
   # Flag to store if a new experiment is created, in case rollback is required on sample generation error
   new_experiment_flag <- set_new_experiment_flag(experiment_id)
+
+  # For eFAST, there is a Dummy parameter. So we add it, if the user has not specified it in their parameters
+  # Here it is assumed the dummy is in the sample, named dummy or Dummy
+  if(!"Dummy" %in% parameters & !"dummy" %in% parameters)
+    parameters<-c(parameters,"Dummy")
+  else if("dummy" %in% parameters) # Just make it upper case to match rest of code
+    parameters[match("dummy",parameters)]<-"Dummy"
 
   tryCatch({
     experiment_id <- check_experiment_id(dblink, experiment_id, "eFAST", experiment_date, experiment_description)
