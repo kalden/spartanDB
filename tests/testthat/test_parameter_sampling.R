@@ -57,8 +57,8 @@ test_that("generate_lhc_set_in_db", {
   expect_equal(nrow(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")),10)
 
   # Here we can also test that paramOfInterest and curve columns are all blank, not used for LHC analysis
-  expect_true(all(is.na(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,4])))
   expect_true(all(is.na(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,5])))
+  expect_true(all(is.na(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,6])))
 
   # Can check error generation here, if say there was a typo in max values. Error should be returned where experiment ID 2 is rolled back
   expect_message(generate_lhc_set_in_db(dblink, c("parameter1","parameter2"),10 , c(A,0.1), c(1,1), "normal", experiment_description="Test LHC2", experiment_date = Sys.Date()), "Experiment ID 2, created in failed attempt at sample generation, now deleted from DB")
@@ -85,9 +85,9 @@ test_that("generate_robustness_set_in_db", {
 
   # Now we can check the structure - robustness analysis should complete the paramOfInterest column
   expected_result <- c(rep(parameters[1],9),rep(parameters[2],9))
-  expect_equal(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,4],expected_result)
+  expect_equal(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,5],expected_result)
 
-  expect_true(all(is.na(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,5])))
+  expect_true(all(is.na(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,6])))
 
   close_db_link(dblink)
 })
@@ -108,15 +108,15 @@ test_that("generate_efast_set_in_db", {
 
   # Should be 390 rows
   db_result<-DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")
-  expect_equal(nrow(db_result),390)
+  expect_equal(nrow(db_result),585)
 
   # Now check the structure
-  expected_result <- c(rep(parameters[1],65),rep(parameters[2],65),rep(parameters[1],65),rep(parameters[2],65),rep(parameters[1],65),rep(parameters[2],65))
-  expect_equal(db_result[,4],expected_result)
+  expected_result <- c(rep(parameters[1],65),rep(parameters[2],65),rep("Dummy",65),rep(parameters[1],65),rep(parameters[2],65),rep("Dummy",65),rep(parameters[1],65),rep(parameters[2],65),rep("Dummy",65))
+  expect_equal(db_result[,5],expected_result)
 
   # eFAST also uses the curve column - so check the structure of that
-  expected_result <- c(rep(1,130),rep(2,130),rep(3,130))
-  expect_equal(db_result[,5],expected_result)
+  expected_result <- c(rep(1,195),rep(2,195),rep(3,195))
+  expect_equal(db_result[,6],expected_result)
 
   close_db_link(dblink)
 
@@ -140,8 +140,8 @@ test_that("add_existing_lhc_sample_to_database", {
   expect_equal(nrow(db_result),500)
 
   # Check paramOfInterest and curve are null
-  expect_true(all(is.na(db_result[,7])))
   expect_true(all(is.na(db_result[,8])))
+  expect_true(all(is.na(db_result[,9])))
 
   close_db_link(dblink)
 
@@ -155,7 +155,7 @@ test_that("add_existing_efast_sample_to_database", {
   # Test addition of a new sample
   dblink<-setup_db_link()
   delete_database_structure(dblink)
-  parameters<-c("BindProbability","ChemoThreshold","ChemoUpperLinearAdjust","ChemoLowerLinearAdjust","VCAMProbabilityThreshold","VCAMSlope","Dummy")
+  parameters<-c("stableBindProbability","chemokineExpressionThreshold","initialChemokineExpressionValue","maxChemokineExpressionValue","maxProbabilityOfAdhesion","adhesionFactorExpressionSlope")
   measures<-c("Velocity","Displacement")
   create_database_structure(dblink, parameters, measures)
   parameter_set_path<-"~/Downloads/Spartan_Tutorial_Data/eFAST_Spartan2"
@@ -196,9 +196,9 @@ test_that("add_existing_robustness_sample_to_database", {
 
   # Now we can check the structure - robustness analysis should complete the paramOfInterest column
   expected_result <- c(rep(parameters[1],9),rep(parameters[2],14))
-  expect_equal(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,4],expected_result)
+  expect_equal(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,5],expected_result)
 
-  expect_true(all(is.na(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,5])))
+  expect_true(all(is.na(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,6])))
 
   close_db_link(dblink)
 })
@@ -226,11 +226,11 @@ test_that("download_sample_as_csvfile", {
   r<-read.csv(file.path(getwd(),"generated_sample.csv"),header=T)
 
   # For a robustness analysis, this should contain the two parameters and parameter of interest
-  expect_equal(ncol(r),3)
+  expect_equal(ncol(r),4)
   expect_equal(nrow(r),23)
 
   # Column 3 should only contain the parameters
-  expect_true(all(r[,3] %in% parameters))
+  expect_true(all(r[,4] %in% parameters))
 
   # Delete the csv file
   file.remove(file.path(getwd(),"generated_sample.csv"))

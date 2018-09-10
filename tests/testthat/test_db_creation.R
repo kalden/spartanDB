@@ -73,7 +73,7 @@ test_that("create_database_structure", {
   delete_database_structure(dblink)
 
   create_database_structure(dblink, c("parameter1","parameter2"), c("Velocity","Displacement"))
-  expect_equal(DBI::dbGetQuery(dblink, "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'spartan_ppsim'")[[1]],4)
+  expect_equal(DBI::dbGetQuery(dblink, "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'spartan_ppsim'")[[1]],5)
 
   close_db_link(dblink)
 

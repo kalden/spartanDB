@@ -65,7 +65,10 @@ create_field_string <- function(field_list, add_analysis_specific_fields=TRUE)
   field_string<-""
   for(entry in field_list)
   {
-    field_string <- paste(field_string, entry, " VARCHAR(45) NOT NULL,",sep="")
+    if(entry!="Dummy")
+      field_string <- paste(field_string, entry, " VARCHAR(45) NOT NULL,",sep="")
+    else
+      field_string <- paste(field_string, entry, " VARCHAR(45),",sep="")
   }
 
   # Add on two others, one for parameter of interest and one for curve
