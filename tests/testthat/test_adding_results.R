@@ -20,7 +20,7 @@ test_that("add_lhc_and_robustness_sim_results_from_csv_file", {
   # Now test adding results for this experiment
   experiment_id<-1
   expect_message(add_lhc_and_robustness_sim_results_from_csv_file(dblink,paste(parameter_set_path,"/OAT_Medians.csv",sep=""), parameters, measures, "Robustness", experiment_id),
-                 "6551 added to results database")
+                 "Simulation Results added to results database")
 
   # Now we can test the structure of the results table
   db_result<-DBI::dbGetQuery(dblink, "SELECT * FROM spartan_results WHERE experiment_set_id=1;")
@@ -34,8 +34,8 @@ test_that("add_lhc_and_robustness_sim_results_from_csv_file", {
 
   # Check parameter of interest column
   counts<-table(db_result[,4])
-  expect_equal(as.numeric(counts[1]),3875)
-  expect_equal(as.numeric(counts[2]),2974)
+  expect_equal(as.numeric(counts[1]),4173)
+  expect_equal(as.numeric(counts[2]),2676)
 
   close_db_link(dblink)
 })
@@ -94,7 +94,7 @@ test_that("add_lhc_and_robustness_sim_results_from_csv_file", {
   # Now add the results for that experiment
   experiment_id<-1 # Could have also added by description and date - these removed as default to NULL if ID specified
 
-  expect_message(add_lhc_and_robustness_sim_results_from_csv_file(dblink, "~/Downloads/Spartan_Tutorial_Data/LHC_Spartan2/LHC_AllResults.csv", parameters, measures, "LHC", experiment_id),"147507 added to results database")
+  expect_message(add_lhc_and_robustness_sim_results_from_csv_file(dblink, "~/Downloads/Spartan_Tutorial_Data/LHC_Spartan2/LHC_AllResults.csv", parameters, measures, "LHC", experiment_id),"Simulation Results added to results database")
 
   # Check structure
   db_result<-DBI::dbGetQuery(dblink, "SELECT * FROM spartan_results WHERE experiment_set_id=1;")

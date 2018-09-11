@@ -29,7 +29,7 @@ add_lhc_and_robustness_sim_results_from_csv_file <- function(dblink, all_results
         if(!success)
           stop("Error in Adding LHC/robustness results from CSV file")
         else
-          message(paste(nrow(results)," added to results database",sep=""))
+          message("Simulation Results added to results database")
       }
       else
       {
@@ -224,7 +224,7 @@ add_replicate_runs_to_database<-function(dblink, parameters, measures, all_resul
 
     block_to_add_to_database<-rbind(block_to_add_to_database,f)
 
-    #for(result in 2:1487)
+    #for(result in 1488:1737)
     for(result in 2:nrow(all_results))
     {
       #print(result)
@@ -251,17 +251,19 @@ add_replicate_runs_to_database<-function(dblink, parameters, measures, all_resul
         # Now We need to query the value for the next set of parameters
         current_parameter_set = parameter_values
         parameter_set_id<-get_parameter_set_id(dblink, current_parameter_set,experiment_id, baseline_db_refs)
-        if(nrow(parameter_set_id)>1)
-        {
-          parameter_set_id<-parameter_set_id[,baseline_db_refs]
-          baseline_db_refs<-baseline_db_refs+1
-        }
+        #if(nrow(parameter_set_id)>1)
+        #{
+        #  parameter_set_id<-parameter_set_id[,baseline_db_refs]
+        #  baseline_db_refs<-baseline_db_refs+1
+        #}
 
         # For a robustness analysis, we need to check the parameter of interest for this new set
         if(experiment_type=="Robustness")
         {
-          #param_of_interest <- retrieve_parameter_of_interest(dblink, current_parameter_set, experiment_id)
-          param_of_interest<-retrieve_parameter_of_interest_using_param_id(dblink,parameter_set_id)
+          param_of_interest <- retrieve_parameter_of_interest(dblink, current_parameter_set, experiment_id)
+          #RMySQL::dbFetch(RMySQL::dbSendQuery(dblink,paste("SELECT paramOfInterest FROM spartan_parameters WHERE parameter_set_id=",parameter_set_id,";",sep="")))
+
+         # param_of_interest<-retrieve_parameter_of_interest_using_param_id(dblink,parameter_set_id)
           # If more than one param_of_interest was returned, increase the reference so for the next baseline set, we use the next parameter reference
           #if(nrow(param_of_interest)>1)
           #{
@@ -279,10 +281,17 @@ add_replicate_runs_to_database<-function(dblink, parameters, measures, all_resul
       else if(experiment_type=="Robustness")
       {
        # if(nrow(param_of_interest)>1)
+      #  {
+          # Assumption made here that the sample exists more than once in the parameter table, yet the results are only in the CSV file once
+          # So we're going to add them to the database twice, once for each of the parameters of interest
+          f<-cbind(t(as.numeric(all_results[result,measures])),parameter_set_id,experiment_id,param_of_interest)
+       # }
+
+       # if(nrow(param_of_interest)>1)
       #    f<-cbind(t(as.numeric(all_results[result,measures])),parameter_set_id,experiment_id,param_of_interest[baseline_db_refs,])
       #  else
       #    f<-cbind(t(as.numeric(all_results[result,measures])),parameter_set_id,experiment_id,param_of_interest[1,])
-        f<-cbind(t(as.numeric(all_results[result,measures])),parameter_set_id,experiment_id,param_of_interest)
+        #f<-cbind(t(as.numeric(all_results[result,measures])),parameter_set_id,experiment_id,param_of_interest)
       }
 
       block_to_add_to_database<-rbind(block_to_add_to_database,f)

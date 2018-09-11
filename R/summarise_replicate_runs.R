@@ -30,17 +30,17 @@ summarise_replicate_robustness_runs<-function(dblink,parameters,measures,experim
         # Now process each parameter in turn
         for(p in 1:length(parameters))
         {
+
           # Need to get the parameter set ID range for the value sets for this parameter
-          min_id<-as.numeric(DBI::dbGetQuery(dblink,paste("SELECT MIN(parameter_set_id) FROM spartan_results WHERE experiment_set_id=",experiment_id," AND paramOfInterest='",parameters[p],"';",sep="")))
-          max_id<-as.numeric(DBI::dbGetQuery(dblink,paste("SELECT MAX(parameter_set_id) FROM spartan_results WHERE experiment_set_id=",experiment_id," AND paramOfInterest='",parameters[p],"';",sep="")))
+          set_ids<-DBI::dbGetQuery(dblink, paste("SELECT DISTINCT parameter_set_id FROM spartan_results WHERE experiment_set_id=",experiment_id," AND paramOfInterest='",parameters[p],"' ORDER BY parameter_set_id;",sep=""))
 
           # Now process each of these samples
-          for(s in min_id:max_id)
+          for(s in 1:nrow(set_ids))
           {
-            #print(s)
+
             # Get the results for this parameter set
             set_results <- DBI::dbGetQuery(dblink,paste("SELECT ",toString(measures)," FROM spartan_results WHERE experiment_set_id=",experiment_id," AND paramOfInterest='",parameters[p],
-                                                        "' AND parameter_set_id=",s,";",sep=""))
+                                                        "' AND parameter_set_id=",set_ids[s,],";",sep=""))
 
             #print(paste(s, " ",nrow(set_results),sep=""))
 
@@ -54,7 +54,7 @@ summarise_replicate_robustness_runs<-function(dblink,parameters,measures,experim
               # Param of interest
               results_summary[row_ref,length(measures)+1]<-parameters[p]
               # Add parameter set ID
-              results_summary[row_ref,length(measures)+2]<-s
+              results_summary[row_ref,length(measures)+2]<-set_ids[s,]
               # Add experiment ID
               results_summary[row_ref, length(measures)+3]<-experiment_id
             }
@@ -66,7 +66,8 @@ summarise_replicate_robustness_runs<-function(dblink,parameters,measures,experim
         }
         # Now we can add these summarys to the analysed results table
         colnames(results_summary)<-c(measures,"paramOfInterest","summarising_parameter_set_id","experiment_set_id")
-        RMySQL::dbWriteTable(dblink, value = as.data.frame(results_summary[stats::complete.cases(results_summary), ]),row.names=FALSE,name="spartan_analysed_results", append=TRUE)
+        a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(results_summary[stats::complete.cases(results_summary), ]),row.names=FALSE,name="spartan_analysed_results", append=TRUE)
+        message("Replicate responses summarised and added to Database")
       }
       else
       {
@@ -231,7 +232,9 @@ summarise_replicate_efast_runs<-function(dblink, parameters, measures, experimen
         # Now we can add this to the database
         colnames(results_summary)<-c(measures,"paramOfInterest","curve","summarising_parameter_set_id","experiment_set_id")
         # Note the removal of any NA rows here - this should be checked
-        RMySQL::dbWriteTable(dblink, value = as.data.frame(results_summary[stats::complete.cases(results_summary), ]),row.names=FALSE,name="spartan_analysed_results", append=TRUE)
+        a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(results_summary[stats::complete.cases(results_summary), ]),row.names=FALSE,name="spartan_analysed_results", append=TRUE)
+
+        message("Replicate Results Summarised and Added to Database")
       }
     }
   }, error = function(e)

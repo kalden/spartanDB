@@ -242,6 +242,10 @@ create_stats_table<-function(dblink, parameters, measures)
     else if("dummy" %in% parameters) # Just make it upper case to match rest of code.
       parameters[match("dummy",parameters)]<-"Dummy"
 
+    # Note robustness needs a link back to the parameter set (whereas the others don't)
+    # So there is a parameter set ID column, but this is not a foreign key as not used
+    # by the other analyses
+
     query<-paste("CREATE TABLE spartan_generated_stats (
       stat_id INT NOT NULL AUTO_INCREMENT,
                   parameter VARCHAR(45) NOT NULL,
@@ -256,6 +260,7 @@ create_stats_table<-function(dblink, parameters, measures)
                   statistic_8 VARCHAR(45),
                   statistic_9 VARCHAR(45),
       experiment_set_id INT NOT NULL,
+      parameter_set_id INT,
       PRIMARY KEY (stat_id),
       INDEX(experiment_set_id),
       FOREIGN KEY (experiment_set_id) REFERENCES spartan_experiment(experiment_id));",sep="")

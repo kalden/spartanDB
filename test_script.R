@@ -34,7 +34,6 @@ add_existing_lhc_sample_to_database(dblink, read.csv("/home/kja505/Dropbox/RoboC
 
 #### 2: Robustness Sampling
 parameters<-c("chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope")
-
 generate_robustness_set_in_db(dblink,parameters, baseline, minvals, maxvals, incvals, experiment_id=NULL, experiment_description="PPSim Robustness")
 download_sample_as_csvfile("/home/kja505/Desktop/", dblink, experiment_type="Robustness",experiment_id=1)
 
@@ -87,6 +86,8 @@ add_efast_sim_results_from_csv_files(dblink, file.path(getwd(), "efast"), parame
 # Now we can create summary stats from the replicates:
 summarise_replicate_efast_runs(dblink, parameters, measures, experiment_id)
 # Now do the eFAST Analysis
+generate_efast_analysis(dblink, parameters, measures, experiment_id=1)
+graph_efast_analysis(dblink, parameters, measures, output_directory, experiment_id=1)
 
 # Delete the extracted files
 unlink(file.path(getwd(), "efast"), recursive=TRUE)
@@ -95,16 +96,20 @@ unlink(file.path(getwd(), "efast"), recursive=TRUE)
 #### 6: Adding Robustness Results to Database
 ## CSV File:
 # In this case, we add the parameters from the tutorial set, don't generate them, such that the parameters can tie up with the results
-parameter_set_path<-"/home/kja505/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured/OAT_Medians.csv"
+parameter_set_path<-"~/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured/"
 # Only two parameters in this test
-parameters<-c("chemoUpperLinearAdjust","chemoLowerLinearAdjust")
+parameters <- c("chemoLowerLinearAdjust", "chemoUpperLinearAdjust")
 add_existing_robustness_sample_to_database(dblink, parameter_set_path, parameters, experiment_description="Original PPSim Robustness")
 # Now add the results for this experiment:
 experiment_id<-1
+parameter_set_path<-"~/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured/OAT_Medians.csv"
 add_lhc_and_robustness_sim_results_from_csv_file(dblink,parameter_set_path, parameters, measures, "Robustness", experiment_id)
 # Now create summary stats from these replicates
-summarise_replicate_robustness_runs(dblink,parameters,measures,experiment_id)
-
+#summarise_replicate_robustness_runs(dblink,parameters,measures,experiment_id)
+# Replicate responses not analysed for OAT
+baseline<-c(0.04, 0.2)
+generate_robustness_analysis(dblink, parameters, measures, baseline, experiment_id=1)
+graph_robustness_analysis(dblink, "/home/kja505/Desktop/",parameters, measures, experiment_id=1)
 
 dbDisconnect(dblink)
 
