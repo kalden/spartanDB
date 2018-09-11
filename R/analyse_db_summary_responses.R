@@ -111,7 +111,14 @@ construct_range_info_vectors<-function(parameters, db_result)
 
 #' Function to retrieve robustness results from the database and produce plots
 #'
-#'
+#' @param dblink A link to the database in which this table is being created
+#' @param output_directory Where the graphs should be stored
+#' @param parameters Simulation parameters being examined
+#' @param measures Simulation output responses
+#' @param ATESTSIGLEVEL Level above 0.5 at which a difference is deemed a large difference
+#' @param experiment_id Experiment ID for the results being added. May be NULL if description and date specified
+#' @param experiment_date Date experiment created. May be NULL if adding by experiment ID
+#' @param experiment_description A description of this experiment. May be NULL if adding by experiment ID
 graph_robustness_analysis<-function(dblink, output_directory, parameters, measures, ATESTSIGLEVEL=0.23, experiment_id=NULL, experiment_date=NULL, experiment_description=NULL)
 {
   tryCatch({
@@ -137,15 +144,15 @@ graph_robustness_analysis<-function(dblink, output_directory, parameters, measur
           graph_title <- paste("A-Test Scores when adjusting parameter \n",
                               parameters[p], sep = "")
 
-          pdf(graph_file, width = 12, height = 7)
-          par(xpd = NA, mar = c(4, 4, 4, 17))
+          grDevices::pdf(graph_file, width = 12, height = 7)
+          graphics::par(xpd = NA, mar = c(4, 4, 4, 17))
 
           # Plot the first measure
           to_graph<-subset(results,results$parameter==parameters[p] & results$measure==measures[1])
           to_graph<-to_graph[order(to_graph[,parameters[p]]),]
 
 
-          plot(to_graph[,parameters[p]], to_graph$statistic_1,
+          graphics::plot(to_graph[,parameters[p]], to_graph$statistic_1,
                type = "o", main = graph_title,
                lty = 1, ylim = c(0, 1), pch = 1, xlab = "Parameter Value",
                ylab = "A Test Score", xaxt = "n")
@@ -157,34 +164,34 @@ graph_robustness_analysis<-function(dblink, output_directory, parameters, measur
               to_graph<-subset(results,results$parameter==parameters[p] & results$measure==measures[l])
               to_graph<-to_graph[order(to_graph[,parameters[p]]),]
 
-              lines(to_graph[,parameters[p]],
+              graphics::lines(to_graph[,parameters[p]],
                     to_graph$statistic_1,
                     type = "o", lty = 5, pch = l)
             }
           }
 
-          axis(1, to_graph[,parameters[p]])
-          legend(par("usr")[2], par("usr")[4], title = "Measures", measures,
+          graphics::axis(1, to_graph[,parameters[p]])
+          graphics::legend(graphics::par("usr")[2], graphics::par("usr")[4], title = "Measures", measures,
                  pch = 1:length(measures), cex = 0.7, ncol = 1)
-          par(xpd = FALSE)
+          graphics::par(xpd = FALSE)
 
-          abline(a = 0.5, b = 0, lty = 4)
+          graphics::abline(a = 0.5, b = 0, lty = 4)
           text_pos <- (max(as.numeric(to_graph[,parameters[p]])) + min(as.numeric(to_graph[,parameters[p]]))) / 2
-          text(text_pos, 0.52, "no difference",
+          graphics::text(text_pos, 0.52, "no difference",
                col = "blue")
           a_abline <- 0.5 + ATESTSIGLEVEL
-          abline(a = a_abline, b = 0, lty = 4)
-          text(text_pos, (0.5 + ATESTSIGLEVEL
+          graphics::abline(a = a_abline, b = 0, lty = 4)
+          graphics::text(text_pos, (0.5 + ATESTSIGLEVEL
                           + 0.02),
                "large difference", col = "blue")
           a_abline <- 0.5 - ATESTSIGLEVEL
-          abline(a = a_abline, b = 0, lty = 4)
-          text(text_pos, (0.5 - ATESTSIGLEVEL
+          graphics::abline(a = a_abline, b = 0, lty = 4)
+          graphics::text(text_pos, (0.5 - ATESTSIGLEVEL
                           - 0.02),
                "large difference", col = "blue")
 
 
-          dev.off()
+          grDevices::dev.off()
         }
       }
       else
@@ -432,7 +439,6 @@ generate_efast_analysis<-function(dblink, parameters, measures, experiment_id=NU
 #' @param experiment_id Experiment ID for the experiment being plotted. May be NULL if description and date specified
 #' @param experiment_date Date experiment created. May be NULL if adding by experiment ID
 #' @param experiment_description A description of this experiment. May be NULL if adding by experiment ID
-#' @param output_type Type of graph to produce. Can be PDF, TIFF, PNG, BMP
 #'
 graph_efast_analysis<-function(dblink, parameters, measures, output_directory, experiment_id=NULL, experiment_date=NULL, experiment_description=NULL)
 {
@@ -454,8 +460,6 @@ graph_efast_analysis<-function(dblink, parameters, measures, output_directory, e
 
       if(nrow(results)>0)
       {
-        if (requireNamespace("gplots", quietly = TRUE)) {
-
           colors <- c("black", "grey50")
 
           for (m in seq(length(measures)))
@@ -470,12 +474,12 @@ graph_efast_analysis<-function(dblink, parameters, measures, output_directory, e
                                   Measure: ", measures[m],
                                 sep = "")
 
-            pdf(GRAPHFILE)
+            grDevices::pdf(GRAPHFILE)
             labelspacing <- seq(2, (length(parameters) * 3), 3)
 
             # DATA TO GRAPH RETRIEVES THE PARAMETERS,
             # si AND sti TO BE GRAPHED FROM THE MAIN RESULT SET
-            analysis_result<-subset(results,measure==measures[m],select=c(statistic_1,statistic_3, statistic_8, statistic_9))
+            analysis_result<-subset(results,results$measure==measures[m],select=c(results$statistic_1,results$statistic_3, results$statistic_8, results$statistic_9))
             data_to_graph <- data.frame(as.numeric(analysis_result[,1]), as.numeric(analysis_result[,2]),check.names = FALSE)
 
 
@@ -487,7 +491,7 @@ graph_efast_analysis<-function(dblink, parameters, measures, output_directory, e
             errors_high <- cbind(high_si, high_sti)
 
             colnames(data_to_graph) <- c("Si", "STi")
-            par(mar = c(9, 4, 4, 2) + 0.1)
+            graphics::par(mar = c(9, 4, 4, 2) + 0.1)
             gplots::barplot2(t(data_to_graph), names.arg = parameters, beside = TRUE,
                              main = GRAPHTITLE,
                              ylim = c(0, 1.0),
@@ -496,14 +500,14 @@ graph_efast_analysis<-function(dblink, parameters, measures, output_directory, e
                              ci.l = t(data_to_graph))
 
             # TEXT SIZE CONTROLLED BY CEX.AXIS
-            axis(1, at = labelspacing, labels = parameters, las = 2, cex.axis = 0.6)
-            legend("topleft", title = NULL, c("Si", "STi"), fill = colors)
+            graphics::axis(1, at = labelspacing, labels = parameters, las = 2, cex.axis = 0.6)
+            graphics::legend("topleft", title = NULL, c("Si", "STi"), fill = colors)
 
-            dev.off()
+            grDevices::dev.off()
           }
           message(paste("Graphs Output to ", output_directory, sep = ""))
-        }
       }
+
       else
       {
         message(paste("No results in the database for experiment ID ",experiment_id,sep=""))
