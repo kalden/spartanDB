@@ -11,20 +11,20 @@ test_that("add_lhc_and_robustness_sim_results_from_csv_file", {
   dblink<-setup_db_link()
   delete_database_structure(dblink)
   # Only two parameters in this test
-  parameters<-c("chemoUpperLinearAdjust","chemoLowerLinearAdjust")
+  parameters<-c("stableBindProbability","chemokineExpressionThreshold","initialChemokineExpressionValue","maxChemokineExpressionValue","maxProbabilityOfAdhesion","adhesionFactorExpressionSlope")
   measures<-c("Velocity","Displacement")
   create_database_structure(dblink, parameters, measures)
-  parameter_set_path<-"~/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured/"
-  add_existing_robustness_sample_to_database(dblink, parameter_set_path, parameters, experiment_description="Original PPSim Robustness")
+  parameter_set_path<-"~/Documents/spartanDB/test_data/"
+  add_existing_robustness_sample_to_database(dblink, parameters, parameter_set_path=parameter_set_path, experiment_description="Original PPSim Robustness")
 
   # Now test adding results for this experiment
   experiment_id<-1
-  expect_message(add_lhc_and_robustness_sim_results_from_csv_file(dblink,paste(parameter_set_path,"/OAT_Medians.csv",sep=""), parameters, measures, "Robustness", experiment_id),
+  expect_message(add_lhc_and_robustness_sim_results_from_csv_file(dblink,paste(parameter_set_path,"/Robustness_Data.csv",sep=""), parameters, measures, "Robustness", experiment_id),
                  "Simulation Results added to results database")
 
   # Now we can test the structure of the results table
   db_result<-DBI::dbGetQuery(dblink, "SELECT * FROM spartan_results WHERE experiment_set_id=1;")
-  expect_equal(nrow(db_result),6849)
+  expect_equal(nrow(db_result),33000)
 
   # There should be no entries in the curve column
   expect_true(all(is.na(db_result[,5])))
@@ -34,8 +34,8 @@ test_that("add_lhc_and_robustness_sim_results_from_csv_file", {
 
   # Check parameter of interest column
   counts<-table(db_result[,4])
-  expect_equal(as.numeric(counts[1]),4173)
-  expect_equal(as.numeric(counts[2]),2676)
+  expect_equal(as.numeric(counts[1]),7500)
+  expect_equal(as.numeric(counts[2]),4200)
 
   close_db_link(dblink)
 })
@@ -54,7 +54,7 @@ test_that("add_efast_sim_results_from_csv_files", {
 
   parameter_set_path<-"~/Downloads/Spartan_Tutorial_Data/eFAST_Spartan2"
   num_curves<-3
-  add_existing_efast_sample_to_database(dblink, parameter_set_path, parameters, num_curves,experiment_description="Original PPSim eFAST")
+  add_existing_efast_sample_to_database(dblink, parameters, num_curves, parameter_set_path=parameter_set_path, experiment_description="Original PPSim eFAST")
 
   # Now add the results for this experiment
   experiment_id<-1 # Could have also added by description and date - these removed as default to NULL if ID specified

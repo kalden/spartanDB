@@ -209,7 +209,8 @@ add_existing_lhc_sample_to_database<-function(dblink, parameter_set, experiment_
 #' this case, as spartan creates an eFAST sample over several files, the user should provide the folder containing each of these files
 #'
 #' @param dblink A link to the database in which this table is being created
-#' @param parameter_set_path Path to the parameter sets to add to the database
+#' @param parameter_set_path Path to the parameter sets to add to the database, if in CSV files
+#' @param parameter_r_object Name of R object in environment, in which samples values reside
 #' @param parameters Simulation parameters being analysed
 #' @param num_curves Number of resample curves employed in sampling
 #' @param experiment_id The ID of the experiment in the database, if not a new
@@ -220,7 +221,7 @@ add_existing_lhc_sample_to_database<-function(dblink, parameter_set, experiment_
 #' if not entered
 #'
 #' @export
-add_existing_efast_sample_to_database<-function(dblink, parameter_set_path, parameters, num_curves, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date())
+add_existing_efast_sample_to_database<-function(dblink, parameters, num_curves, parameter_set_path=NULL, parameters_r_object=NULL, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date())
 {
   # Flag to store if a new experiment is created, in case rollback is required on sample generation error
   new_experiment_flag <- set_new_experiment_flag(experiment_id)
@@ -246,8 +247,21 @@ add_existing_efast_sample_to_database<-function(dblink, parameter_set_path, para
         for(p in 1:length(parameters))
         {
           # Read in the CSV file containing the parameter sets
-          params<-utils::read.csv(file.path(parameter_set_path,paste("Curve",c,"_Parameter",p,"_Parameters.csv",sep="")),header=T)
-          success <- add_parameter_set_to_database(dblink, params, experiment_id, experiment_type="eFAST",curve=c,param_of_interest=parameters[p])
+          if(!is.null(parameter_set_path))
+          {
+            params<-utils::read.csv(file.path(parameter_set_path,paste("Curve",c,"_Parameter",p,"_Parameters.csv",sep="")),header=T)
+            success <- add_parameter_set_to_database(dblink, params, experiment_id, experiment_type="eFAST",curve=c,param_of_interest=parameters[p])
+          }
+          else if(!is.null(parameters_r_object))
+          {
+            params<-parameters_r_object[,,p,c]
+            colnames(params)<-parameters    # spartan does not give each sample headers, for some reason
+            success <- add_parameter_set_to_database(dblink, params, experiment_id, experiment_type="eFAST",curve=c,param_of_interest=parameters[p])
+          }
+          else
+          {
+            success<-FALSE
+          }
 
           if(!success)
             stop("Error in Adding eFAST Parameter Set to Database")
@@ -270,7 +284,8 @@ add_existing_efast_sample_to_database<-function(dblink, parameter_set_path, para
 #' this case, as spartan creates a robustness sample over several files, the user should provide the folder containing each of these files
 #'
 #' @param dblink A link to the database in which this table is being created
-#' @param parameter_set_path Path to the parameter sets to add to the database
+#' @param parameter_set_path Path to the parameter sets to add to the database, if in CSV files
+#' @param parameters_r_object Robustness parameter sets, if supplied as an R object in the environment
 #' @param parameters Simulation parameters being analysed
 #' @param experiment_id The ID of the experiment in the database, if not a new
 #' experiment. If NULL an experiment ID will be created
@@ -280,7 +295,7 @@ add_existing_efast_sample_to_database<-function(dblink, parameter_set_path, para
 #' if not entered
 #'
 #' @export
-add_existing_robustness_sample_to_database<-function(dblink, parameter_set_path, parameters, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date())
+add_existing_robustness_sample_to_database<-function(dblink, parameters, parameter_set_path=NULL, parameters_r_object=NULL, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date())
 {
   # Flag to store if a new experiment is created, in case rollback is required on sample generation error
   new_experiment_flag <- set_new_experiment_flag(experiment_id)
@@ -295,8 +310,21 @@ add_existing_robustness_sample_to_database<-function(dblink, parameter_set_path,
       for(p in 1:length(parameters))
       {
         # Read in the CSV file containing the parameter sets
-        params<-utils::read.csv(file.path(parameter_set_path,paste(parameters[p],"_OAT_Values.csv",sep="")),header=T)
-        success <- add_parameter_set_to_database(dblink, params, experiment_id, experiment_type="Robustness",param_of_interest=parameters[p])
+        if(!is.null(parameter_set_path))
+        {
+          params<-utils::read.csv(file.path(parameter_set_path,paste(parameters[p],"_OAT_Values.csv",sep="")),header=T)
+          success <- add_parameter_set_to_database(dblink, params, experiment_id, experiment_type="Robustness",param_of_interest=parameters[p])
+        }
+        else if(!is.null(parameters_r_object))
+        {
+          params<-parameters_r_object[[p]]
+          success <- add_parameter_set_to_database(dblink, params, experiment_id, experiment_type="Robustness",param_of_interest=parameters[p])
+        }
+        else
+        {
+          success = FALSE
+        }
+
 
         if(!success)
           stop("Error in Adding eFAST Parameter Set to Database")

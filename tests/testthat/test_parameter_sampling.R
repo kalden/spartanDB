@@ -161,7 +161,7 @@ test_that("add_existing_efast_sample_to_database", {
   parameter_set_path<-"~/Downloads/Spartan_Tutorial_Data/eFAST_Spartan2"
   num_curves<-3
 
-  expect_message(add_existing_efast_sample_to_database(dblink, parameter_set_path, parameters, num_curves, experiment_id=NULL),"Parameter Set Added to Database, with Experiment ID 1")
+  expect_message(add_existing_efast_sample_to_database(dblink, parameters, num_curves, parameter_set_path=parameter_set_path, experiment_id=NULL),"Parameter Set Added to Database, with Experiment ID 1")
 
   # Can now check structure as we did previously
   # Should be 1365
@@ -183,22 +183,21 @@ test_that("add_existing_robustness_sample_to_database", {
   # Test addition of a new sample
   dblink<-setup_db_link()
   delete_database_structure(dblink)
-  parameter_set_path<-"~/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured"
-  # Only two parameters in this test
-  parameters<-c("chemoUpperLinearAdjust","chemoLowerLinearAdjust")
+  parameter_set_path<-"~/Documents/spartanDB/test_data"
+  parameters<-c("stableBindProbability","chemokineExpressionThreshold","initialChemokineExpressionValue","maxChemokineExpressionValue","maxProbabilityOfAdhesion","adhesionFactorExpressionSlope")
   measures<-c("Velocity","Displacement")
   create_database_structure(dblink, parameters, measures)
 
-  expect_message(add_existing_robustness_sample_to_database(dblink, parameter_set_path, parameters),"Parameter Sets Added to Database, with Experiment ID 1")
+  expect_message(add_existing_robustness_sample_to_database(dblink, parameters, parameter_set_path=parameter_set_path,experiment_description="Original Robustness"),"Parameter Sets Added to Database, with Experiment ID 1")
 
   # Check the correct number of records
-  expect_equal(nrow(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")),23)
+  expect_equal(nrow(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")),82)
 
   # Now we can check the structure - robustness analysis should complete the paramOfInterest column
-  expected_result <- c(rep(parameters[1],9),rep(parameters[2],14))
-  expect_equal(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,5],expected_result)
+  expected_result <- c(rep(parameters[1],11),rep(parameters[2],9),rep(parameters[3],9),rep(parameters[4],14),rep(parameters[5],19),rep(parameters[6],20))
+  expect_equal(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,9],expected_result)
 
-  expect_true(all(is.na(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,6])))
+  expect_true(all(is.na(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,8])))
 
   close_db_link(dblink)
 })
@@ -211,13 +210,12 @@ test_that("download_sample_as_csvfile", {
   # Test addition of a new sample
   dblink<-setup_db_link()
   delete_database_structure(dblink)
-  parameter_set_path<-"~/Downloads/Spartan_Tutorial_Data/OAT_Spartan2/CSV_Structured"
-  # Only two parameters in this test
-  parameters<-c("chemoUpperLinearAdjust","chemoLowerLinearAdjust")
+  parameter_set_path<-"~/Documents/spartanDB/test_data"
+  parameters<-c("stableBindProbability","chemokineExpressionThreshold","initialChemokineExpressionValue","maxChemokineExpressionValue","maxProbabilityOfAdhesion","adhesionFactorExpressionSlope")
   measures<-c("Velocity","Displacement")
   create_database_structure(dblink, parameters, measures)
 
-  add_existing_robustness_sample_to_database(dblink, parameter_set_path, parameters)
+  add_existing_robustness_sample_to_database(dblink, parameters, parameter_set_path=parameter_set_path)
 
   # Check can download this sample
   expect_message(download_sample_as_csvfile(getwd(), dblink, experiment_type="Robustness",experiment_id=1),paste("Sample exported as CSV file to ",getwd(),"/generated_sample.csv",sep=""))
@@ -226,11 +224,11 @@ test_that("download_sample_as_csvfile", {
   r<-read.csv(file.path(getwd(),"generated_sample.csv"),header=T)
 
   # For a robustness analysis, this should contain the two parameters and parameter of interest
-  expect_equal(ncol(r),4)
-  expect_equal(nrow(r),23)
+  expect_equal(ncol(r),8)
+  expect_equal(nrow(r),82)
 
   # Column 3 should only contain the parameters
-  expect_true(all(r[,4] %in% parameters))
+  expect_true(all(r[,8] %in% parameters))
 
   # Delete the csv file
   file.remove(file.path(getwd(),"generated_sample.csv"))
