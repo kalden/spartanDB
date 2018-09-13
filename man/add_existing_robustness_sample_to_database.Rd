@@ -4,16 +4,19 @@
 \alias{add_existing_robustness_sample_to_database}
 \title{Adds a previously generated robustness sample to the database, either creating an experiment record for this in doing so or checking a specified experiment ID}
 \usage{
-add_existing_robustness_sample_to_database(dblink, parameter_set_path,
-  parameters, experiment_id = NULL, experiment_description = NULL,
+add_existing_robustness_sample_to_database(dblink, parameters,
+  parameter_set_path = NULL, parameters_r_object = NULL,
+  experiment_id = NULL, experiment_description = NULL,
   experiment_date = Sys.Date())
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}
 
-\item{parameter_set_path}{Path to the parameter sets to add to the database}
-
 \item{parameters}{Simulation parameters being analysed}
+
+\item{parameter_set_path}{Path to the parameter sets to add to the database, if in CSV files}
+
+\item{parameters_r_object}{Robustness parameter sets, if supplied as an R object in the environment}
 
 \item{experiment_id}{The ID of the experiment in the database, if not a new
 experiment. If NULL an experiment ID will be created}

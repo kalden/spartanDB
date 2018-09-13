@@ -210,7 +210,7 @@ add_existing_lhc_sample_to_database<-function(dblink, parameter_set, experiment_
 #'
 #' @param dblink A link to the database in which this table is being created
 #' @param parameter_set_path Path to the parameter sets to add to the database, if in CSV files
-#' @param parameter_r_object Name of R object in environment, in which samples values reside
+#' @param parameters_r_object Name of R object in environment, in which samples values reside
 #' @param parameters Simulation parameters being analysed
 #' @param num_curves Number of resample curves employed in sampling
 #' @param experiment_id The ID of the experiment in the database, if not a new

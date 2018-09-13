@@ -4,18 +4,21 @@
 \alias{add_existing_efast_sample_to_database}
 \title{Adds a previously generated eFAST sample to the database, either creating an experiment record for this in doing so or checking a specified experiment ID}
 \usage{
-add_existing_efast_sample_to_database(dblink, parameter_set_path, parameters,
-  num_curves, experiment_id = NULL, experiment_description = NULL,
+add_existing_efast_sample_to_database(dblink, parameters, num_curves,
+  parameter_set_path = NULL, parameters_r_object = NULL,
+  experiment_id = NULL, experiment_description = NULL,
   experiment_date = Sys.Date())
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}
 
-\item{parameter_set_path}{Path to the parameter sets to add to the database}
-
 \item{parameters}{Simulation parameters being analysed}
 
 \item{num_curves}{Number of resample curves employed in sampling}
+
+\item{parameter_set_path}{Path to the parameter sets to add to the database, if in CSV files}
+
+\item{parameters_r_object}{Name of R object in environment, in which samples values reside}
 
 \item{experiment_id}{The ID of the experiment in the database, if not a new
 experiment. If NULL an experiment ID will be created}
