@@ -284,8 +284,7 @@ add_existing_efast_sample_to_database<-function(dblink, parameters, num_curves, 
 #' this case, as spartan creates a robustness sample over several files, the user should provide the folder containing each of these files
 #'
 #' @param dblink A link to the database in which this table is being created
-#' @param parameter_set_path Path to the parameter sets to add to the database, if in CSV files
-#' @param parameters_r_object Robustness parameter sets, if supplied as an R object in the environment
+#' @param parameter_set Robustness parameter sets, supplied as an R object in the environment
 #' @param parameters Simulation parameters being analysed
 #' @param experiment_id The ID of the experiment in the database, if not a new
 #' experiment. If NULL an experiment ID will be created
@@ -295,7 +294,7 @@ add_existing_efast_sample_to_database<-function(dblink, parameters, num_curves, 
 #' if not entered
 #'
 #' @export
-add_existing_robustness_sample_to_database<-function(dblink, parameters, parameter_set_path=NULL, parameters_r_object=NULL, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date())
+add_existing_robustness_sample_to_database<-function(dblink, parameters, parameter_set, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date())
 {
   # Flag to store if a new experiment is created, in case rollback is required on sample generation error
   new_experiment_flag <- set_new_experiment_flag(experiment_id)
@@ -306,29 +305,15 @@ add_existing_robustness_sample_to_database<-function(dblink, parameters, paramet
     # Check above was successful (returned a value that isn't -1)
     if(experiment_id != -1)
     {
-      # There is one CSV sheet per parameter, so we iterate through these
       for(p in 1:length(parameters))
       {
-        # Read in the CSV file containing the parameter sets
-        if(!is.null(parameter_set_path))
-        {
-          params<-utils::read.csv(file.path(parameter_set_path,paste(parameters[p],"_OAT_Values.csv",sep="")),header=T)
-          success <- add_parameter_set_to_database(dblink, params, experiment_id, experiment_type="Robustness",param_of_interest=parameters[p])
-        }
-        else if(!is.null(parameters_r_object))
-        {
-          params<-parameters_r_object[[p]]
-          success <- add_parameter_set_to_database(dblink, params, experiment_id, experiment_type="Robustness",param_of_interest=parameters[p])
-        }
-        else
-        {
-          success = FALSE
-        }
-
+        # Subset by parameter of interest, so we can reuse code to add to the database
+        success <- add_parameter_set_to_database(dblink, subset(ppsim_robustness_set,paramOfInterest==parameters[p],select=parameters), experiment_id, experiment_type="Robustness",param_of_interest=parameters[p])
 
         if(!success)
-          stop("Error in Adding eFAST Parameter Set to Database")
+          stop("Error in Adding Robustness Parameter Set to Database")
       }
+
       message(paste("Parameter Sets Added to Database, with Experiment ID ",experiment_id,sep=""))
     }
   }, error = function(e)

@@ -17,64 +17,76 @@ generate_robustness_analysis<-function(dblink, parameters, measures, baseline, e
     # if experiment ID is ok:
     if(experiment_id != -1)
     {
-      # Get the analysed results for this experiment
-      results<-DBI::dbGetQuery(dblink,paste("SELECT spartan_parameters.paramOfInterest,",toString(parameters),",",toString(measures)," FROM spartan_parameters,spartan_results WHERE spartan_results.experiment_set_id=",
-                                            experiment_id," AND spartan_parameters.experiment_id=",experiment_id,
-                                            " AND spartan_results.parameter_set_id=spartan_parameters.parameter_set_id;", sep=""))
+      # Now need to check there is no analysis for this experiment in the database already
+      pre_existing_results<-DBI::dbGetQuery(dblink,paste0("SELECT COUNT(stat_id) FROM spartan_generated_stats WHERE experiment_set_id=",experiment_id))
 
-      if(nrow(results)>0)
+      if(pre_existing_results==0)
       {
-        # Get the parameter IDs, parameter of interest, and values for the parameters in this experiment
-        param_ids<-DBI::dbGetQuery(dblink,paste("SELECT parameter_set_id,paramOfInterest,",toString(parameters), " FROM spartan_parameters WHERE experiment_id=",experiment_id,";",sep=""))
 
-        # Work out the min, max, and inc values used in sampling
-        sampling_settings_info<-construct_range_info_vectors(parameters, param_ids)
+        # Get the analysed results for this experiment
+        results<-DBI::dbGetQuery(dblink,paste("SELECT spartan_parameters.paramOfInterest,",toString(parameters),",",toString(measures)," FROM spartan_parameters,spartan_results WHERE spartan_results.experiment_set_id=",
+                                              experiment_id," AND spartan_parameters.experiment_id=",experiment_id,
+                                              " AND spartan_results.parameter_set_id=spartan_parameters.parameter_set_id;", sep=""))
 
-        # Calculate the A-Test scores for all the results in the database
-        a_test_scores <- spartan::oat_csv_result_file_analysis_from_DB(results, parameters, baseline, measures, sampling_settings_info$min_vals,sampling_settings_info$max_vals,
-                                                                       sampling_settings_info$inc_vals)
-
-
-        # Now to construct the result block for the database
-        block_to_add_to_database<-matrix(nrow=(nrow(param_ids)*length(measures)),ncol=6)
-        row_ref<-1
-
-        for (r in 1:nrow(a_test_scores))
+        if(nrow(results)>0)
         {
-          # We need to find the ID of the parameter set, for adding to the database, so subset the parameter ID results
-          param_set<-param_ids
-          for(p in 1:length(parameters))
-            param_set <- subset(param_set, param_set[,parameters[p]]
-                         == a_test_scores[r,parameters[p]])
 
-          # If the baseline is found, there may be more than one ID in the param_set. We're going to store the results of the same parameter values for these different IDs
-          # such that all parameter set ID's have a result
-          for(id in 1:nrow(param_set))
+          # Get the parameter IDs, parameter of interest, and values for the parameters in this experiment
+          param_ids<-DBI::dbGetQuery(dblink,paste("SELECT parameter_set_id,paramOfInterest,",toString(parameters), " FROM spartan_parameters WHERE experiment_id=",experiment_id,";",sep=""))
+
+          # Work out the min, max, and inc values used in sampling
+          sampling_settings_info<-construct_range_info_vectors(parameters, param_ids)
+
+          # Calculate the A-Test scores for all the results in the database
+          a_test_scores <- spartan::oat_csv_result_file_analysis_from_DB(results, parameters, baseline, measures, sampling_settings_info$min_vals,sampling_settings_info$max_vals,
+                                                                         sampling_settings_info$inc_vals)
+
+
+          # Now to construct the result block for the database
+          block_to_add_to_database<-matrix(nrow=(nrow(param_ids)*length(measures)),ncol=6)
+          row_ref<-1
+
+          for (r in 1:nrow(a_test_scores))
           {
-            col_offset<-3
-            for(m in 1:length(measures))
+            # We need to find the ID of the parameter set, for adding to the database, so subset the parameter ID results
+            param_set<-param_ids
+            for(p in 1:length(parameters))
+              param_set <- subset(param_set, param_set[,parameters[p]]
+                           == a_test_scores[r,parameters[p]])
+
+            # If the baseline is found, there may be more than one ID in the param_set. We're going to store the results of the same parameter values for these different IDs
+            # such that all parameter set ID's have a result
+            for(id in 1:nrow(param_set))
             {
-              block_to_add_to_database[row_ref,1]<-param_set[id,2]
-              block_to_add_to_database[row_ref,2]<-measures[m]
-              block_to_add_to_database[row_ref,3]<-a_test_scores[r,col_offset]
-              block_to_add_to_database[row_ref,4]<-a_test_scores[r,(col_offset+1)]
-              block_to_add_to_database[row_ref,5]<-experiment_id
-              block_to_add_to_database[row_ref,6]<-param_set[id,1]
-              row_ref<-row_ref+1
-              col_offset<-col_offset+2
+              col_offset<-length(parameters)+1
+              for(m in 1:length(measures))
+              {
+                block_to_add_to_database[row_ref,1]<-param_set[id,2]
+                block_to_add_to_database[row_ref,2]<-measures[m]
+                block_to_add_to_database[row_ref,3]<-a_test_scores[r,col_offset]
+                block_to_add_to_database[row_ref,4]<-a_test_scores[r,(col_offset+1)]
+                block_to_add_to_database[row_ref,5]<-experiment_id
+                block_to_add_to_database[row_ref,6]<-param_set[id,1]
+                row_ref<-row_ref+1
+                col_offset<-col_offset+2
+              }
             }
           }
+
+          # Name the columns to match the database structure
+          colnames(block_to_add_to_database)<-c("parameter","measure","statistic_1","statistic_2","experiment_set_id","parameter_set_id")
+          a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(block_to_add_to_database),row.names=FALSE,name="spartan_generated_stats", append=TRUE)
+
+          message("A-Test Scores Produced for all Parameter-Measure Pairs and Stored in the Database")
         }
-
-        # Name the columns to match the database structure
-        colnames(block_to_add_to_database)<-c("parameter","measure","statistic_1","statistic_2","experiment_set_id","parameter_set_id")
-        a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(block_to_add_to_database),row.names=FALSE,name="spartan_generated_stats", append=TRUE)
-
-        message("A-Test Scores Produced for all Parameter-Measure Pairs and Stored in the Database")
+        else
+        {
+          message("No results in the database for the specified experiment")
+        }
       }
       else
       {
-        message("No results in the database for the specified experiment")
+        message(paste0("There are already analysed results for this experiment ID (",experiment_id,") in the database. No analysis performed"))
       }
     }
     # Error messages for experiment ID are within the experiment check function
@@ -223,43 +235,54 @@ generate_lhc_analysis<-function(dblink, parameters, measures, experiment_id=NULL
     # if experiment ID is ok:
     if(experiment_id != -1)
     {
-      # Get the analysed results for this experiment
-      results<-DBI::dbGetQuery(dblink,paste("SELECT ",toString(parameters),",",toString(measures)," FROM spartan_parameters,spartan_analysed_results WHERE spartan_analysed_results.experiment_set_id=",
-                            experiment_id," AND spartan_parameters.experiment_id=",experiment_id,
-                            " AND spartan_analysed_results.summarising_parameter_set_id=spartan_parameters.parameter_set_id;", sep=""))
+      # Now we should check whether any analysed results already exist for this experiment
+      pre_existing_results<-DBI::dbGetQuery(dblink, paste0("SELECT stat_id FROM spartan_generated_stats WHERE experiment_set_id=",experiment_id))
 
-      if(nrow(results) > 0)
+      if(nrow(pre_existing_results)==0)
       {
-        coeffs<-spartan::lhc_generatePRCoEffs_db_link(results, parameters, measures)
 
-        block_to_add_to_db<-matrix(nrow=length(parameters)*length(measures),ncol=5)
-        row_ref<-1
+        # Get the analysed results for this experiment
+        results<-DBI::dbGetQuery(dblink,paste("SELECT ",toString(parameters),",",toString(measures)," FROM spartan_parameters,spartan_analysed_results WHERE spartan_analysed_results.experiment_set_id=",
+                              experiment_id," AND spartan_parameters.experiment_id=",experiment_id,
+                              " AND spartan_analysed_results.summarising_parameter_set_id=spartan_parameters.parameter_set_id;", sep=""))
 
-        # Now to put this in the DB. In this case statistic_1 is PRCC, statistic_2 is P-Value
-        for(r in 1:nrow(coeffs))
+        if(nrow(results) > 0)
         {
-          col_offset<-0
+          coeffs<-spartan::lhc_generatePRCoEffs_db_link(results, parameters, measures)
 
-          for(m in 1:length(measures))
+          block_to_add_to_db<-matrix(nrow=length(parameters)*length(measures),ncol=5)
+          row_ref<-1
+
+          # Now to put this in the DB. In this case statistic_1 is PRCC, statistic_2 is P-Value
+          for(r in 1:nrow(coeffs))
           {
-            block_to_add_to_db[row_ref,1]<-row.names(coeffs)[r]
-            # Need to get the measure name - assuming in same order as provided measures
-            block_to_add_to_db[row_ref,2]<-measures[m]
-            block_to_add_to_db[row_ref,3]<-coeffs[r,(col_offset+1)]
-            block_to_add_to_db[row_ref,4]<-coeffs[r,(col_offset+2)]
-            block_to_add_to_db[row_ref,5]<-experiment_id
-            row_ref<-row_ref+1
-            col_offset<-col_offset+2
-          }
-        }
+            col_offset<-0
 
-        # Write this set to the DB
-        colnames(block_to_add_to_db)<-c("parameter","measure","statistic_1","statistic_2","experiment_set_id")
-        a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(block_to_add_to_db),row.names=FALSE,name="spartan_generated_stats", append=TRUE)
+            for(m in 1:length(measures))
+            {
+              block_to_add_to_db[row_ref,1]<-row.names(coeffs)[r]
+              # Need to get the measure name - assuming in same order as provided measures
+              block_to_add_to_db[row_ref,2]<-measures[m]
+              block_to_add_to_db[row_ref,3]<-coeffs[r,(col_offset+1)]
+              block_to_add_to_db[row_ref,4]<-coeffs[r,(col_offset+2)]
+              block_to_add_to_db[row_ref,5]<-experiment_id
+              row_ref<-row_ref+1
+              col_offset<-col_offset+2
+            }
+          }
+
+          # Write this set to the DB
+          colnames(block_to_add_to_db)<-c("parameter","measure","statistic_1","statistic_2","experiment_set_id")
+          a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(block_to_add_to_db),row.names=FALSE,name="spartan_generated_stats", append=TRUE)
+        }
+        else
+        {
+          message("No results in the database for the specified experiment")
+        }
       }
       else
       {
-        message("No results in the database for the specified experiment")
+        message(paste0("There are already analysed results for this experiment ID (",experiment_id,") in the database. No analysis performed"))
       }
     }
     # Error messages output by the chech experiment method
@@ -301,8 +324,9 @@ graph_lhc_analysis<-function(dblink, parameters, measures, measure_scale, output
         coeffs<-DBI::dbGetQuery(dblink,paste("SELECT * FROM spartan_generated_stats WHERE experiment_set_id=",experiment_id,";",sep=""))
 
         spartan::lhc_graphMeasuresForParameterChange_from_db(results, coeffs, parameters, measures, measure_scale, output_directory,
-                                                             output_type = c("PDF"))
-      }
+                                                             OUTPUT_TYPE = c("PDF"))
+
+        }
       else
       {
         message("No results in the database for the specified experiment")
@@ -340,87 +364,98 @@ generate_efast_analysis<-function(dblink, parameters, measures, experiment_id=NU
     # if experiment ID is ok:
     if(experiment_id != -1)
     {
-      # Get the analysed results for this experiment
-      results<-DBI::dbGetQuery(dblink,paste("SELECT ",toString(measures),",spartan_analysed_results.paramOfInterest,spartan_analysed_results.curve FROM spartan_parameters,spartan_analysed_results WHERE spartan_analysed_results.experiment_set_id=",
-                                            experiment_id," AND spartan_parameters.experiment_id=",experiment_id,
-                                            " AND spartan_analysed_results.summarising_parameter_set_id=spartan_parameters.parameter_set_id;", sep=""))
+      # Check whether there are already analysed results in the DB
+      pre_existing_results<-DBI::dbGetQuery(dblink,paste0("SELECT COUNT(stat_id) FROM spartan_generated_stats WHERE experiment_set_id=",experiment_id))
 
-      # Calculate the number of samples
-      number_samples<-nrow(DBI::dbGetQuery(dblink,paste("SELECT parameter_set_id FROM spartan_parameters WHERE experiment_id=",experiment_id," AND paramOfInterest='",parameters[1],"' AND curve=1;",sep="")))
-
-      if(nrow(results) > 0)
+      if(pre_existing_results==0)
       {
-        # We're going to construct the summary file that spartan uses to do the analysis here, one for each curve
-        all_curve_results<-NULL
-        for(c in 1:max(results$curve))
-        {
-          column_names<-NULL
-          summary_table<-NULL
-            col_ref<-1
 
-          for(p in 1:length(parameters))
+        # Get the analysed results for this experiment
+        results<-DBI::dbGetQuery(dblink,paste("SELECT ",toString(measures),",spartan_analysed_results.paramOfInterest,spartan_analysed_results.curve FROM spartan_parameters,spartan_analysed_results WHERE spartan_analysed_results.experiment_set_id=",
+                                              experiment_id," AND spartan_parameters.experiment_id=",experiment_id,
+                                              " AND spartan_analysed_results.summarising_parameter_set_id=spartan_parameters.parameter_set_id;", sep=""))
+
+        # Calculate the number of samples
+        number_samples<-nrow(DBI::dbGetQuery(dblink,paste("SELECT parameter_set_id FROM spartan_parameters WHERE experiment_id=",experiment_id," AND paramOfInterest='",parameters[1],"' AND curve=1;",sep="")))
+
+        if(nrow(results) > 0)
+        {
+          # We're going to construct the summary file that spartan uses to do the analysis here, one for each curve
+          all_curve_results<-NULL
+          for(c in 1:max(results$curve))
           {
+            column_names<-NULL
+            summary_table<-NULL
+              col_ref<-1
+
+            for(p in 1:length(parameters))
+            {
+              for(m in 1:length(measures))
+              {
+                summary_table<-cbind(summary_table,subset(results,results$paramOfInterest==parameters[p] & results$curve==c,select=measures[m])[,1])
+                column_names<-c(column_names,paste(parameters[p],"_Median",measures[m],sep=""))
+              }
+            }
+              # Make summary table numeric
+            summary_table<-apply(summary_table, 2,as.numeric)
+            colnames(summary_table) <- column_names
+
+            # Bind to results of all curves
+            all_curve_results<-cbind(all_curve_results,summary_table)
+
+          }
+
+          # Get the results in the final structure the eFAST analysis methods requires
+          all_curve_results <- as.matrix(all_curve_results)
+          final_structure<- array(all_curve_results, dim = c(number_samples, (length(parameters) * length(measures)),
+                                                             max(results$curve)))
+
+          # Now we can use the spartan methods to analyse the data
+          efast_results<-spartan::efast_run_Analysis_from_DB(final_structure, number_samples, parameters,
+                                                             max(results$curve), measures)
+
+
+          # Now to put this in the DB. In eFAST's case there are 9 stats for each measure
+          # Si, Si PVal, STi, STi PVal, SCi, Si Coefficient, STi Coefficient, Si Error bar, STi Error Bar. These are
+          # stored in stat 1-9 in the database, and these are translated as required when graphing
+          block_to_add_to_db<-matrix(nrow=length(parameters)*length(measures),ncol=12)
+          row_ref<-1
+
+          for(r in 1:nrow(efast_results))
+          {
+            col_offset<-0
+
             for(m in 1:length(measures))
             {
-              summary_table<-cbind(summary_table,subset(results,results$paramOfInterest==parameters[p] & results$curve==c,select=measures[m])[,1])
-              column_names<-c(column_names,paste(parameters[p],"_Median",measures[m],sep=""))
+              block_to_add_to_db[row_ref,1]<-row.names(efast_results)[r]
+              # Need to get the measure name - assuming in same order as provided measures
+              block_to_add_to_db[row_ref,2]<-measures[m]
+              block_to_add_to_db[row_ref,3]<-efast_results[r,(col_offset+1)]
+              block_to_add_to_db[row_ref,4]<-efast_results[r,(col_offset+2)]
+              block_to_add_to_db[row_ref,5]<-efast_results[r,(col_offset+3)]
+              block_to_add_to_db[row_ref,6]<-efast_results[r,(col_offset+4)]
+              block_to_add_to_db[row_ref,7]<-efast_results[r,(col_offset+5)]
+              block_to_add_to_db[row_ref,8]<-efast_results[r,(col_offset+6)]
+              block_to_add_to_db[row_ref,9]<-efast_results[r,(col_offset+7)]
+              block_to_add_to_db[row_ref,10]<-efast_results[r,(col_offset+8)]
+              block_to_add_to_db[row_ref,11]<-efast_results[r,(col_offset+9)]
+              block_to_add_to_db[row_ref,12]<-experiment_id
+              row_ref<-row_ref+1
+              col_offset<-col_offset+9
             }
           }
-            # Make summary table numeric
-          summary_table<-apply(summary_table, 2,as.numeric)
-          colnames(summary_table) <- column_names
-
-          # Bind to results of all curves
-          all_curve_results<-cbind(all_curve_results,summary_table)
-
+          # Write this set to the DB
+          colnames(block_to_add_to_db)<-c("parameter","measure","statistic_1","statistic_2","statistic_3","statistic_4","statistic_5","statistic_6","statistic_7","statistic_8","statistic_9","experiment_set_id")
+          a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(block_to_add_to_db),row.names=FALSE,name="spartan_generated_stats", append=TRUE)
         }
-
-        # Get the results in the final structure the eFAST analysis methods requires
-        all_curve_results <- as.matrix(all_curve_results)
-        final_structure<- array(all_curve_results, dim = c(number_samples, (length(parameters) * length(measures)),
-                                                           max(results$curve)))
-
-        # Now we can use the spartan methods to analyse the data
-        efast_results<-spartan::efast_run_Analysis_from_DB(final_structure, number_samples, parameters,
-                                                           max(results$curve), measures)
-
-
-        # Now to put this in the DB. In eFAST's case there are 9 stats for each measure
-        # Si, Si PVal, STi, STi PVal, SCi, Si Coefficient, STi Coefficient, Si Error bar, STi Error Bar. These are
-        # stored in stat 1-9 in the database, and these are translated as required when graphing
-        block_to_add_to_db<-matrix(nrow=length(parameters)*length(measures),ncol=12)
-        row_ref<-1
-
-        for(r in 1:nrow(efast_results))
+        else
         {
-          col_offset<-0
-
-          for(m in 1:length(measures))
-          {
-            block_to_add_to_db[row_ref,1]<-row.names(efast_results)[r]
-            # Need to get the measure name - assuming in same order as provided measures
-            block_to_add_to_db[row_ref,2]<-measures[m]
-            block_to_add_to_db[row_ref,3]<-efast_results[r,(col_offset+1)]
-            block_to_add_to_db[row_ref,4]<-efast_results[r,(col_offset+2)]
-            block_to_add_to_db[row_ref,5]<-efast_results[r,(col_offset+3)]
-            block_to_add_to_db[row_ref,6]<-efast_results[r,(col_offset+4)]
-            block_to_add_to_db[row_ref,7]<-efast_results[r,(col_offset+5)]
-            block_to_add_to_db[row_ref,8]<-efast_results[r,(col_offset+6)]
-            block_to_add_to_db[row_ref,9]<-efast_results[r,(col_offset+7)]
-            block_to_add_to_db[row_ref,10]<-efast_results[r,(col_offset+8)]
-            block_to_add_to_db[row_ref,11]<-efast_results[r,(col_offset+9)]
-            block_to_add_to_db[row_ref,12]<-experiment_id
-            row_ref<-row_ref+1
-            col_offset<-col_offset+9
-          }
+          message("No results in the database for the specified experiment")
         }
-        # Write this set to the DB
-        colnames(block_to_add_to_db)<-c("parameter","measure","statistic_1","statistic_2","statistic_3","statistic_4","statistic_5","statistic_6","statistic_7","statistic_8","statistic_9","experiment_set_id")
-        a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(block_to_add_to_db),row.names=FALSE,name="spartan_generated_stats", append=TRUE)
       }
       else
       {
-        message("No results in the database for the specified experiment")
+        message(paste0("Results already exist for this experiment ID (",experiment_id,") in the database. No processing performed."))
       }
     }
     # Error messages output by the chech experiment method
@@ -439,8 +474,9 @@ generate_efast_analysis<-function(dblink, parameters, measures, experiment_id=NU
 #' @param experiment_id Experiment ID for the experiment being plotted. May be NULL if description and date specified
 #' @param experiment_date Date experiment created. May be NULL if adding by experiment ID
 #' @param experiment_description A description of this experiment. May be NULL if adding by experiment ID
+#' @param output_types Files types of graph to produce (pdf,png,bmp etc)
 #'
-graph_efast_analysis<-function(dblink, parameters, measures, output_directory, experiment_id=NULL, experiment_date=NULL, experiment_description=NULL)
+graph_efast_analysis<-function(dblink, parameters, measures, output_directory, experiment_id=NULL, experiment_date=NULL, experiment_description=NULL, output_types=c("pdf"))
 {
   # For eFAST, there is a Dummy parameter. This should exist in the database incase eFAST is used
   # So we add it, if the user has not specified it in their parameters
@@ -460,8 +496,6 @@ graph_efast_analysis<-function(dblink, parameters, measures, output_directory, e
 
       if(nrow(results)>0)
       {
-          colors <- c("black", "grey50")
-
           for (m in seq(length(measures)))
           {
             ### The database output is not in the same format as is used for spartan graphing
@@ -469,41 +503,27 @@ graph_efast_analysis<-function(dblink, parameters, measures, output_directory, e
             ## fit the data structure the database produces
             ### So the latter has been done, and the spartan function is not called
 
-            GRAPHFILE <- file.path(output_directory, paste(measures[m], ".pdf",sep=""))
-            GRAPHTITLE <- paste("Partitioning of Variance in Simulation Results
-                                  Measure: ", measures[m],
-                                sep = "")
+            analysis_result<-subset(results,results$measure==measures[m],select=c(statistic_1,statistic_3, statistic_8, statistic_9))
 
-            grDevices::pdf(GRAPHFILE)
-            labelspacing <- seq(2, (length(parameters) * 3), 3)
+            si_results <- data.frame(rep("Si",length(parameters)),parameters,analysis_result[,1],(as.numeric(analysis_result[,1])+as.numeric(analysis_result[,3])),stringsAsFactors = FALSE)
+            colnames(si_results)<-c("Statistic","Parameter","Sensitivity","Error")
+            sti_results <- data.frame(rep("STi",length(parameters)),parameters,analysis_result[,2],(as.numeric(analysis_result[,2])+as.numeric(analysis_result[,4])),stringsAsFactors = FALSE)
+            colnames(sti_results)<-c("Statistic","Parameter","Sensitivity","Error")
+            # Merge
+            graph_frame <- rbind(si_results,sti_results)
 
-            # DATA TO GRAPH RETRIEVES THE PARAMETERS,
-            # si AND sti TO BE GRAPHED FROM THE MAIN RESULT SET
-            analysis_result<-subset(results,results$measure==measures[m],select=c(results$statistic_1,results$statistic_3, results$statistic_8, results$statistic_9))
-            data_to_graph <- data.frame(as.numeric(analysis_result[,1]), as.numeric(analysis_result[,2]),check.names = FALSE)
+            for(out in output_types)
+            {
+              ggplot(data=graph_frame, aes(x=Parameter, y=as.numeric(Sensitivity), fill=Statistic)) +
+                geom_bar(stat="identity", position=position_dodge()) + scale_fill_manual("", values = c("Si" = "black", "STi" = "darkgray")) +
+                theme(axis.text.x = element_text(angle = 65, hjust = 1, size=rel(0.75))) +
+                ggtitle(paste0("Partitioning of Variance in Simulation Results\n Measure: ",measures[m])) + theme(plot.title = element_text(hjust = 0.5)) +
+                geom_errorbar(aes(ymin=as.numeric(Sensitivity), ymax=as.numeric(Error)), width=.2, position=position_dodge(.9)) + ylim(0,1) +
+                xlab("Parameter")+ylab("Sensitivity")
 
+              ggsave(file.path(output_directory,paste0(measures[m],".",out)))
+            }
 
-            # CONSTRUCT THE ERROR BAR
-            high_si <- as.numeric(data_to_graph[, 1]) + as.numeric(analysis_result[,3])
-            high_sti <- as.numeric(data_to_graph[, 2]) + as.numeric(analysis_result[,4])
-
-            # COMBINE
-            errors_high <- cbind(high_si, high_sti)
-
-            colnames(data_to_graph) <- c("Si", "STi")
-            graphics::par(mar = c(9, 4, 4, 2) + 0.1)
-            gplots::barplot2(t(data_to_graph), names.arg = parameters, beside = TRUE,
-                             main = GRAPHTITLE,
-                             ylim = c(0, 1.0),
-                             ylab = "eFAST Sensitivity", col = colors, xaxt = "n",
-                             plot.ci = TRUE, ci.u = t(errors_high),
-                             ci.l = t(data_to_graph))
-
-            # TEXT SIZE CONTROLLED BY CEX.AXIS
-            graphics::axis(1, at = labelspacing, labels = parameters, las = 2, cex.axis = 0.6)
-            graphics::legend("topleft", title = NULL, c("Si", "STi"), fill = colors)
-
-            grDevices::dev.off()
           }
           message(paste("Graphs Output to ", output_directory, sep = ""))
       }
