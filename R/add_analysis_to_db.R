@@ -1,4 +1,4 @@
-#' Adds a set of results to the database for a given LHC or robustness experiment, from a CSV file
+#' Adds a set of results to the database for a given LHC or robustness experiment
 #'
 #' @param dblink A link to the database in which this table is being created
 #' @param results_csv The path to the CSV file being added to the database
@@ -11,7 +11,7 @@
 #' @param experiment_description A description of this experiment. May be NULL if adding by experiment ID
 #'
 #' @export
-add_lhc_and_robustness_sim_results_from_csv_file <- function(dblink, parameters, measures, experiment_type, experiment_id=NULL, experiment_description=NULL, experiment_date=NULL, results_csv=NULL, results_obj=NULL)
+add_lhc_and_robustness_sim_results <- function(dblink, parameters, measures, experiment_type, experiment_id=NULL, experiment_description=NULL, experiment_date=NULL, results_csv=NULL, results_obj=NULL)
 {
   tryCatch({
 
@@ -28,7 +28,7 @@ add_lhc_and_robustness_sim_results_from_csv_file <- function(dblink, parameters,
       {
         if(!is.null(results_csv))
         {
-          results <- utils::read.csv(all_results, header = TRUE, check.names = FALSE)
+          results <- utils::read.csv(results_csv, header = TRUE, check.names = FALSE)
         }
         else if(!is.null(results_obj))
         {

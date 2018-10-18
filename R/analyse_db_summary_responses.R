@@ -514,10 +514,10 @@ graph_efast_analysis<-function(dblink, parameters, measures, output_directory, e
 
             for(out in output_types)
             {
-              ggplot(data=graph_frame, aes(x=Parameter, y=as.numeric(Sensitivity), fill=Statistic)) +
+              ggplot2::ggplot(data=graph_frame, aes(x=Parameter, y=as.numeric(Sensitivity), fill=Statistic)) +
                 geom_bar(stat="identity", position=position_dodge()) + scale_fill_manual("", values = c("Si" = "black", "STi" = "darkgray")) +
                 theme(axis.text.x = element_text(angle = 65, hjust = 1, size=rel(0.75))) +
-                ggtitle(paste0("Partitioning of Variance in Simulation Results\n Measure: ",measures[m])) + theme(plot.title = element_text(hjust = 0.5)) +
+                ggtitle(paste0("Partitioning of Variance in Simulation Results\n Measure: ",measures[m])) + theme(plot.title = element_text(hjust = 0.5, size=rel(0.75))) +
                 geom_errorbar(aes(ymin=as.numeric(Sensitivity), ymax=as.numeric(Error)), width=.2, position=position_dodge(.9)) + ylim(0,1) +
                 xlab("Parameter")+ylab("Sensitivity")
 

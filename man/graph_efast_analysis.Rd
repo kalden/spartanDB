@@ -6,7 +6,7 @@
 \usage{
 graph_efast_analysis(dblink, parameters, measures, output_directory,
   experiment_id = NULL, experiment_date = NULL,
-  experiment_description = NULL)
+  experiment_description = NULL, output_types = c("pdf"))
 }
 \arguments{
 \item{dblink}{A link to the database in which the results are stored}
@@ -22,6 +22,8 @@ graph_efast_analysis(dblink, parameters, measures, output_directory,
 \item{experiment_date}{Date experiment created. May be NULL if adding by experiment ID}
 
 \item{experiment_description}{A description of this experiment. May be NULL if adding by experiment ID}
+
+\item{output_types}{Files types of graph to produce (pdf,png,bmp etc)}
 }
 \description{
 Mine the DB for an eFAST experiment and plot the results

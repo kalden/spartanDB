@@ -57,7 +57,7 @@ experiment_id<-1 # Could have also added by description and date - these removed
 add_lhc_and_robustness_sim_results_from_csv_file(dblink, parameters, measures, "LHC", experiment_id, results_csv="~/Documents/spartanDB/test_data/LHC_AllResults.csv")
 # Or could have used the object
 data(ppsim_lhc_results)
-add_lhc_and_robustness_sim_results_from_csv_file(dblink, parameters, measures, "LHC", experiment_id, results_obj=ppsim_lhc_results)
+add_lhc_and_robustness_sim_results(dblink, parameters, measures, "LHC", experiment_id, results_obj=ppsim_lhc_results)
 
 # Now analyse the replicates to create a summary result
 summarise_replicate_lhc_runs(dblink, measures, experiment_id)
@@ -106,16 +106,20 @@ unlink(file.path(getwd(), "efast"), recursive=TRUE)
 # In this case, we add the parameters from the tutorial set, don't generate them, such that the parameters can tie up with the results
 data(ppsim_robustness_set)
 # Read these into the database:
-add_existing_robustness_sample_to_database(dblink, parameters, ppsim_robustness_set, experiment_description="Original PPSim Robustness3")
+add_existing_robustness_sample_to_database(dblink, parameters, ppsim_robustness_set, experiment_description="Original PPSim Robustness")
 
 # Now add the results for this experiment:
-experiment_id<-8
+experiment_id<-3
 data(ppsim_robustness_results)
-add_lhc_and_robustness_sim_results_from_csv_file(dblink, parameters, measures, "Robustness", experiment_id, results_obj=ppsim_robustness_results)
+add_lhc_and_robustness_sim_results(dblink, parameters, measures, "Robustness", experiment_id, results_obj=ppsim_robustness_results)
 
 # Now create summary stats from these replicates
 # Replicate responses not analysed for OAT
-generate_robustness_analysis(dblink, parameters, measures, baseline, experiment_id=8)
-graph_robustness_analysis(dblink, "/home/kja505/Desktop/",parameters, measures, experiment_id=8)
+generate_robustness_analysis(dblink, parameters, measures, baseline, experiment_id=3)
+graph_robustness_analysis(dblink, "/home/kja505/Desktop/",parameters, measures, experiment_id=3)
+
+#### Now mine the database for experiments to use to create emulations and ensembles, using spartan
+
+
 
 dbDisconnect(dblink)
