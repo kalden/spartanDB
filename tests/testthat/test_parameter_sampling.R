@@ -133,7 +133,7 @@ test_that("add_existing_lhc_sample_to_database", {
   create_database_structure(dblink, c("chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope"), c("Velocity","Displacement"))
 
   expect_message(add_existing_lhc_sample_to_database(dblink, read.csv("~/Dropbox/RoboCalc/LHC_Params.csv",header=T), experiment_description="Test Existing LHC Set", experiment_date = Sys.Date()),
-                                                    "Parameter Set Added to Database, with Experiment ID 1")
+                 "Parameter Set Added to Database, with Experiment ID 1")
 
   # Check correct number of records
   db_result<-DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")
@@ -188,13 +188,14 @@ test_that("add_existing_robustness_sample_to_database", {
   measures<-c("Velocity","Displacement")
   create_database_structure(dblink, parameters, measures)
 
-  expect_message(add_existing_robustness_sample_to_database(dblink, parameters, parameter_set_path=parameter_set_path,experiment_description="Original Robustness"),"Parameter Sets Added to Database, with Experiment ID 1")
+  data(ppsim_robustness_set)
+  expect_message(add_existing_robustness_sample_to_database(dblink, parameters, ppsim_robustness_set,experiment_description="Original Robustness"),"Parameter Sets Added to Database, with Experiment ID 1")
 
   # Check the correct number of records
-  expect_equal(nrow(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")),82)
+  expect_equal(nrow(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")),80)
 
   # Now we can check the structure - robustness analysis should complete the paramOfInterest column
-  expected_result <- c(rep(parameters[1],11),rep(parameters[2],9),rep(parameters[3],9),rep(parameters[4],14),rep(parameters[5],19),rep(parameters[6],20))
+  expected_result <- c(rep(parameters[1],10),rep(parameters[2],9),rep(parameters[3],9),rep(parameters[4],14),rep(parameters[5],18),rep(parameters[6],20))
   expect_equal(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,9],expected_result)
 
   expect_true(all(is.na(DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")[,8])))
@@ -215,7 +216,8 @@ test_that("download_sample_as_csvfile", {
   measures<-c("Velocity","Displacement")
   create_database_structure(dblink, parameters, measures)
 
-  add_existing_robustness_sample_to_database(dblink, parameters, parameter_set_path=parameter_set_path)
+  data(ppsim_robustness_set)
+  add_existing_robustness_sample_to_database(dblink, parameters, ppsim_robustness_set)
 
   # Check can download this sample
   expect_message(download_sample_as_csvfile(getwd(), dblink, experiment_type="Robustness",experiment_id=1),paste("Sample exported as CSV file to ",getwd(),"/generated_sample.csv",sep=""))
@@ -225,7 +227,7 @@ test_that("download_sample_as_csvfile", {
 
   # For a robustness analysis, this should contain the two parameters and parameter of interest
   expect_equal(ncol(r),8)
-  expect_equal(nrow(r),82)
+  expect_equal(nrow(r),80)
 
   # Column 3 should only contain the parameters
   expect_true(all(r[,8] %in% parameters))
@@ -235,3 +237,4 @@ test_that("download_sample_as_csvfile", {
 
   close_db_link(dblink)
 })
+

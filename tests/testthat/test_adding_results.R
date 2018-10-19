@@ -1,10 +1,12 @@
 library(spartanDB)
 context("Test of spartanDB Adding Results to Database")
 
-test_that("add_lhc_and_robustness_sim_results_from_csv_file", {
+test_that("add_robustness_sim_results", {
 
   skip_on_travis()
   skip_on_cran()
+
+  skip("Skipped for Development")
 
   # Setup:
   # Test addition of a new sample
@@ -14,12 +16,14 @@ test_that("add_lhc_and_robustness_sim_results_from_csv_file", {
   parameters<-c("stableBindProbability","chemokineExpressionThreshold","initialChemokineExpressionValue","maxChemokineExpressionValue","maxProbabilityOfAdhesion","adhesionFactorExpressionSlope")
   measures<-c("Velocity","Displacement")
   create_database_structure(dblink, parameters, measures)
-  parameter_set_path<-"~/Documents/spartanDB/test_data/"
-  add_existing_robustness_sample_to_database(dblink, parameters, parameter_set_path=parameter_set_path, experiment_description="Original PPSim Robustness")
+  data(ppsim_robustness_set)
+  add_existing_robustness_sample_to_database(dblink, parameters, ppsim_robustness_set, experiment_description="Original PPSim Robustness")
 
   # Now test adding results for this experiment
   experiment_id<-1
-  expect_message(add_lhc_and_robustness_sim_results_from_csv_file(dblink,paste(parameter_set_path,"/Robustness_Data.csv",sep=""), parameters, measures, "Robustness", experiment_id),
+
+  data(ppsim_robustness_results)
+  expect_message(add_lhc_and_robustness_sim_results(dblink, parameters, measures, "Robustness", experiment_id, results_obj=ppsim_robustness_results),
                  "Simulation Results added to results database")
 
   # Now we can test the structure of the results table
@@ -44,6 +48,8 @@ test_that("add_efast_sim_results_from_csv_files", {
 
   skip_on_travis()
   skip_on_cran()
+
+  skip("Skipped for Development")
 
   # Setup:
   dblink<-setup_db_link()
@@ -77,10 +83,12 @@ test_that("add_efast_sim_results_from_csv_files", {
 
 })
 
-test_that("add_lhc_and_robustness_sim_results_from_csv_file", {
+test_that("add_lhc_sim_results", {
 
   skip_on_travis()
   skip_on_cran()
+
+  skip("Skipped for Development")
 
   # Setup:
   dblink<-setup_db_link()
@@ -89,12 +97,14 @@ test_that("add_lhc_and_robustness_sim_results_from_csv_file", {
   measures<-c("Velocity","Displacement")
   create_database_structure(dblink, parameters, measures)
 
-  add_existing_lhc_sample_to_database(dblink, read.csv("~/Downloads/Spartan_Tutorial_Data/LHC_Spartan2/Tutorial_Parameters_for_Runs.csv",header=T), experiment_description="original ppsim lhc dataset")
+  data(pregenerated_lhc)
+  add_existing_lhc_sample_to_database(dblink, pregenerated_lhc, experiment_description="original ppsim lhc dataset")
 
   # Now add the results for that experiment
   experiment_id<-1 # Could have also added by description and date - these removed as default to NULL if ID specified
 
-  expect_message(add_lhc_and_robustness_sim_results_from_csv_file(dblink, "~/Downloads/Spartan_Tutorial_Data/LHC_Spartan2/LHC_AllResults.csv", parameters, measures, "LHC", experiment_id),"Simulation Results added to results database")
+  data(ppsim_lhc_results)
+  expect_message(add_lhc_and_robustness_sim_results(dblink, parameters, measures, "LHC", experiment_id, results_obj=ppsim_lhc_results),"Simulation Results added to results database")
 
   # Check structure
   db_result<-DBI::dbGetQuery(dblink, "SELECT * FROM spartan_results WHERE experiment_set_id=1;")

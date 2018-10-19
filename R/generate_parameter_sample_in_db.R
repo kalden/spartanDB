@@ -308,7 +308,7 @@ add_existing_robustness_sample_to_database<-function(dblink, parameters, paramet
       for(p in 1:length(parameters))
       {
         # Subset by parameter of interest, so we can reuse code to add to the database
-        success <- add_parameter_set_to_database(dblink, subset(ppsim_robustness_set,paramOfInterest==parameters[p],select=parameters), experiment_id, experiment_type="Robustness",param_of_interest=parameters[p])
+        success <- add_parameter_set_to_database(dblink, subset(parameter_set,parameter_set$paramOfInterest==parameters[p],select=parameters), experiment_id, experiment_type="Robustness",param_of_interest=parameters[p])
 
         if(!success)
           stop("Error in Adding Robustness Parameter Set to Database")

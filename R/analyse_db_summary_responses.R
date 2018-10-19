@@ -503,7 +503,7 @@ graph_efast_analysis<-function(dblink, parameters, measures, output_directory, e
             ## fit the data structure the database produces
             ### So the latter has been done, and the spartan function is not called
 
-            analysis_result<-subset(results,results$measure==measures[m],select=c(statistic_1,statistic_3, statistic_8, statistic_9))
+            analysis_result<-subset(results,results$measure==measures[m],select=c(results$statistic_1,results$statistic_3, results$statistic_8, results$statistic_9))
 
             si_results <- data.frame(rep("Si",length(parameters)),parameters,analysis_result[,1],(as.numeric(analysis_result[,1])+as.numeric(analysis_result[,3])),stringsAsFactors = FALSE)
             colnames(si_results)<-c("Statistic","Parameter","Sensitivity","Error")
@@ -514,14 +514,14 @@ graph_efast_analysis<-function(dblink, parameters, measures, output_directory, e
 
             for(out in output_types)
             {
-              ggplot2::ggplot(data=graph_frame, aes(x=Parameter, y=as.numeric(Sensitivity), fill=Statistic)) +
-                geom_bar(stat="identity", position=position_dodge()) + scale_fill_manual("", values = c("Si" = "black", "STi" = "darkgray")) +
-                theme(axis.text.x = element_text(angle = 65, hjust = 1, size=rel(0.75))) +
-                ggtitle(paste0("Partitioning of Variance in Simulation Results\n Measure: ",measures[m])) + theme(plot.title = element_text(hjust = 0.5, size=rel(0.75))) +
-                geom_errorbar(aes(ymin=as.numeric(Sensitivity), ymax=as.numeric(Error)), width=.2, position=position_dodge(.9)) + ylim(0,1) +
-                xlab("Parameter")+ylab("Sensitivity")
+              ggplot2::ggplot(data=graph_frame, ggplot2::aes(x=graph_frame$Parameter, y=as.numeric(graph_frame$Sensitivity), fill=graph_frame$Statistic)) +
+                ggplot2::geom_bar(stat="identity", position=ggplot2::position_dodge()) + ggplot2::scale_fill_manual("", values = c("Si" = "black", "STi" = "darkgray")) +
+                ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 65, hjust = 1, size=ggplot2::rel(0.75))) +
+                ggplot2::ggtitle(paste0("Partitioning of Variance in Simulation Results\n Measure: ",measures[m])) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size=ggplot2::rel(0.75))) +
+                ggplot2::geom_errorbar(ggplot2::aes(ymin=as.numeric(graph_frame$Sensitivity), ymax=as.numeric(graph_frame$Error)), width=.2, position=ggplot2::position_dodge(.9)) + ggplot2::ylim(0,1) +
+                ggplot2::xlab("Parameter")+ggplot2::ylab("Sensitivity")
 
-              ggsave(file.path(output_directory,paste0(measures[m],".",out)))
+              ggplot2::ggsave(file.path(output_directory,paste0(measures[m],".",out)))
             }
 
           }
