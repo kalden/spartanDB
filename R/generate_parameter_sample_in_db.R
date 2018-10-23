@@ -175,9 +175,11 @@ generate_lhc_set_in_db <- function(dblink, parameters, num_samples, minvals, max
 #' experiment is being created
 #' @param experiment_date Date experiment created. Defaults to today's date
 #' if not entered
+#' @param return_experiment_id As a new experiment is being created here, it may be
+#' useful to have the ID for this entry. Boolean to state whether this is returned
 #'
 #' @export
-add_existing_lhc_sample_to_database<-function(dblink, parameter_set, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date())
+add_existing_lhc_sample_to_database<-function(dblink, parameter_set, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date(), return_experiment_id=FALSE)
 {
   # Flag to store if a new experiment is created, in case rollback is required on sample generation error
   new_experiment_flag <- set_new_experiment_flag(experiment_id)
@@ -189,12 +191,16 @@ add_existing_lhc_sample_to_database<-function(dblink, parameter_set, experiment_
     if(experiment_id != -1)
     {
       # If no experiment ID is specified, generate a new experiment
-      success <- add_parameter_set_to_database(dblink, parameter_set, experiment_id, experiment_type="LHC")
+      success <- add_parameter_set_to_database(dblink, round(parameter_set,digits=12), experiment_id, experiment_type="LHC")
       if(!success)
         stop("Error in Adding Parameter Set to Database")
       else
         message(paste("Parameter Set Added to Database, with Experiment ID ",experiment_id,sep=""))
     }
+
+    if(return_experiment_id)
+      return(experiment_id)
+
   }, error = function(e)
   {
     message(paste("Error in Storing Pre-Existing LHC Sample in Database. Error Message Generated: \n",e,sep=""))
@@ -354,7 +360,7 @@ add_parameter_set_to_database<-function(dblink, parameter_set,experiment_id, exp
       colnames(r)<-c(colnames(r)[1:(ncol(r)-2)],"experiment_id","paramOfInterest")
     }
 
-    RMySQL::dbWriteTable(dblink, value = as.data.frame(r), row.names = FALSE, name = "spartan_parameters", append = TRUE )
+    RMySQL::dbWriteTable(dblink, value = data.frame(r,stringsAsFactors=FALSE), row.names = FALSE, name = "spartan_parameters", append = TRUE )
     return(TRUE)
   }, error = function(e)
   {

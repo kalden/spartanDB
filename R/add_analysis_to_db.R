@@ -28,11 +28,11 @@ add_lhc_and_robustness_sim_results <- function(dblink, parameters, measures, exp
       {
         if(!is.null(results_csv))
         {
-          results <- utils::read.csv(results_csv, header = TRUE, check.names = FALSE)
+          results <- round(utils::read.csv(results_csv, header = TRUE, check.names = FALSE),digits=12)
         }
         else if(!is.null(results_obj))
         {
-          results <- results_obj
+          results <- round(results_obj,digits=12)
         }
 
         # Providing this is read in correctly, we can then process these into the DB

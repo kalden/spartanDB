@@ -130,14 +130,15 @@ test_that("add_existing_lhc_sample_to_database", {
   # Test addition of a new sample
   dblink<-setup_db_link()
   delete_database_structure(dblink)
-  create_database_structure(dblink, c("chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope"), c("Velocity","Displacement"))
+  create_database_structure(dblink, c("stableBindProbability","chemokineExpressionThreshold","initialChemokineExpressionValue","maxChemokineExpressionValue","maxProbabilityOfAdhesion","adhesionFactorExpressionSlope"), c("Velocity","Displacement"))
 
-  expect_message(add_existing_lhc_sample_to_database(dblink, read.csv("~/Dropbox/RoboCalc/LHC_Params.csv",header=T), experiment_description="Test Existing LHC Set", experiment_date = Sys.Date()),
+  data(pregenerated_lhc)
+  expect_message(add_existing_lhc_sample_to_database(dblink, pregenerated_lhc, experiment_description="Test Existing LHC Set", experiment_date = Sys.Date()),
                  "Parameter Set Added to Database, with Experiment ID 1")
 
   # Check correct number of records
   db_result<-DBI::dbGetQuery(dblink, "SELECT * FROM spartan_parameters WHERE experiment_id= '1'")
-  expect_equal(nrow(db_result),500)
+  expect_equal(nrow(db_result),495)
 
   # Check paramOfInterest and curve are null
   expect_true(all(is.na(db_result[,8])))

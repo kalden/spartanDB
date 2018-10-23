@@ -79,3 +79,38 @@ check_parameter_sets_exist_for_given_experiment_id<-function(dblink, experiment_
   else
     return(FALSE)
 }
+
+#'
+#' Provides a means for storing the results of an experiment in the database. This assumes sets where the execution was done once (not replicate runs of parameter sets)
+#'
+#' @param dblink A link to the database in which this table is being created
+#' @param experiment_parameter_set Parameters for this experiment
+#' @param experiment_result_set Simulation responses under those parameter conditions
+#' @param experiment_id Either existing ID of experiment for which this result is being added, or NULL if a new experiment
+#' @param experiment_date Date the experiment was performed. Can be NULL if using existing experiment ID
+#' @param experiment_description Description of the experiment being performed. Can be NULL if using existing experiment ID
+store_summary_experiment_result<-function(dblink, experiment_parameter_set, experiment_result_set, experiment_id=NULL, experiment_description=NULL, experiment_date=NULL)
+{
+  tryCatch({
+    # Check experiment ID will determine whether this is a new experiment, or whether the experiment has already been declared in the database
+    experiment_id <- check_experiment_id(dblink, experiment_id, "Robustness", experiment_date, experiment_description)
+
+    # Check above was successful (returned a value that isn't -1)
+    if(experiment_id != -1)
+    {
+      params_to_add <- cbind(experiment_parameter_set,rep(experiment_id,nrow(experiment_parameter_set)))
+      colnames(params_to_add)<-c(colnames(experiment_parameter_set),"experiment_id")
+      params<-RMySQL::dbWriteTable(dblink, value = as.data.frame(params_to_add),row.names=FALSE,name="spartan_parameters", append=TRUE)
+      param_ids<-DBI::dbGetQuery(dblink,paste0("SELECT parameter_set_id FROM spartan_parameters WHERE experiment_id=",experiment_id))
+      # Now make the results entry
+      results_to_add <- cbind(experiment_result_set,param_ids,rep(experiment_id,nrow(experiment_result_set)))
+      colnames(results_to_add)<-c(colnames(experiment_result_set),"summarising_parameter_set_id","experiment_set_id")
+      a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(results_to_add),row.names=FALSE,name="spartan_analysed_results", append=TRUE)
+      message(paste0("Experiment Data Added to Database with Experiment ID ",experiment_id))
+    }
+
+  }, error = function(e)
+  {
+    message(paste("Error in Adding Experiment to Database. Error message generated:\n",e,sep=""))
+  })
+}

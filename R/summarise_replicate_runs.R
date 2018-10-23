@@ -100,7 +100,7 @@ summarise_replicate_lhc_runs<-function(dblink, measures, experiment_id=NULL, exp
     if(experiment_id != -1)
     {
       # Check whether there are already results in the DB for this experiment
-      pre_existing_results<-DBI::dbGetQuery(dblink,paste0("SELECT COUNT(analysed_set_id) FROM spartan_analysed_results WHERE experiment_set_id=",experiment_id))
+      pre_existing_results<-as.numeric(DBI::dbGetQuery(dblink,paste0("SELECT COUNT(analysed_set_id) FROM spartan_analysed_results WHERE experiment_set_id=",experiment_id)))
 
       if(pre_existing_results==0)
       {

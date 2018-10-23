@@ -250,30 +250,32 @@ generate_lhc_analysis<-function(dblink, parameters, measures, experiment_id=NULL
         {
           coeffs<-spartan::lhc_generatePRCoEffs_db_link(results, parameters, measures)
 
-          block_to_add_to_db<-matrix(nrow=length(parameters)*length(measures),ncol=5)
-          row_ref<-1
+          add_prcc_values_to_db(dblink, parameters, measures, coeffs, experiment_id)
+
+          #block_to_add_to_db<-matrix(nrow=length(parameters)*length(measures),ncol=5)
+          #row_ref<-1
 
           # Now to put this in the DB. In this case statistic_1 is PRCC, statistic_2 is P-Value
-          for(r in 1:nrow(coeffs))
-          {
-            col_offset<-0
+          #for(r in 1:nrow(coeffs))
+          #{
+          #  col_offset<-0
 
-            for(m in 1:length(measures))
-            {
-              block_to_add_to_db[row_ref,1]<-row.names(coeffs)[r]
+          #  for(m in 1:length(measures))
+          #  {
+          #    block_to_add_to_db[row_ref,1]<-row.names(coeffs)[r]
               # Need to get the measure name - assuming in same order as provided measures
-              block_to_add_to_db[row_ref,2]<-measures[m]
-              block_to_add_to_db[row_ref,3]<-coeffs[r,(col_offset+1)]
-              block_to_add_to_db[row_ref,4]<-coeffs[r,(col_offset+2)]
-              block_to_add_to_db[row_ref,5]<-experiment_id
-              row_ref<-row_ref+1
-              col_offset<-col_offset+2
-            }
-          }
+          #    block_to_add_to_db[row_ref,2]<-measures[m]
+          #    block_to_add_to_db[row_ref,3]<-coeffs[r,(col_offset+1)]
+          #    block_to_add_to_db[row_ref,4]<-coeffs[r,(col_offset+2)]
+          #    block_to_add_to_db[row_ref,5]<-experiment_id
+          #    row_ref<-row_ref+1
+           #   col_offset<-col_offset+2
+          #  }
+          #}
 
           # Write this set to the DB
-          colnames(block_to_add_to_db)<-c("parameter","measure","statistic_1","statistic_2","experiment_set_id")
-          a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(block_to_add_to_db),row.names=FALSE,name="spartan_generated_stats", append=TRUE)
+          #colnames(block_to_add_to_db)<-c("parameter","measure","statistic_1","statistic_2","experiment_set_id")
+          #a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(block_to_add_to_db),row.names=FALSE,name="spartan_generated_stats", append=TRUE)
         }
         else
         {
@@ -290,6 +292,42 @@ generate_lhc_analysis<-function(dblink, parameters, measures, experiment_id=NULL
   {
     message(paste("Error in analysing LHC results in database. Error message generated:\n",e))
   })
+}
+
+#' Adds a set of PRCC values for an LHC experiment to the database.
+#'
+#' @param dblink A link to the database in which this table is being created
+#' @param parameters Simulation parameters being examined
+#' @param measures Simulation output responses
+#' @param coeffs Calculated values of PRCC (using spartan method)
+#' @param experiment_id Experiment ID for the results being added.
+add_prcc_values_to_db<-function(dblink, parameters, measures, coeffs, experiment_id)
+{
+  block_to_add_to_db<-matrix(nrow=length(parameters)*length(measures),ncol=5)
+  row_ref<-1
+
+  # Now to put this in the DB. In this case statistic_1 is PRCC, statistic_2 is P-Value
+  for(r in 1:nrow(coeffs))
+  {
+    col_offset<-0
+
+    for(m in 1:length(measures))
+    {
+      block_to_add_to_db[row_ref,1]<-row.names(coeffs)[r]
+      # Need to get the measure name - assuming in same order as provided measures
+      block_to_add_to_db[row_ref,2]<-measures[m]
+      block_to_add_to_db[row_ref,3]<-coeffs[r,(col_offset+1)]
+      block_to_add_to_db[row_ref,4]<-coeffs[r,(col_offset+2)]
+      block_to_add_to_db[row_ref,5]<-experiment_id
+      row_ref<-row_ref+1
+      col_offset<-col_offset+2
+    }
+  }
+
+  # Write this set to the DB
+  colnames(block_to_add_to_db)<-c("parameter","measure","statistic_1","statistic_2","experiment_set_id")
+  a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(block_to_add_to_db),row.names=FALSE,name="spartan_generated_stats", append=TRUE)
+  message(paste0("PRCC Values for ",experiment_id," Added to Database"))
 }
 
 #' Take LHC experiment from database and produce plots of the results
@@ -496,14 +534,14 @@ graph_efast_analysis<-function(dblink, parameters, measures, output_directory, e
 
       if(nrow(results)>0)
       {
-          for (m in seq(length(measures)))
+          for (m in 1:length(measures))
           {
             ### The database output is not in the same format as is used for spartan graphing
             ### Getting the data into that format would have taken as much code as tweaking the graph code to
             ## fit the data structure the database produces
             ### So the latter has been done, and the spartan function is not called
 
-            analysis_result<-subset(results,results$measure==measures[m],select=c(results$statistic_1,results$statistic_3, results$statistic_8, results$statistic_9))
+            analysis_result<-results[results$measure==measures[m], ][c("statistic_1","statistic_3","statistic_8","statistic_9")]
 
             si_results <- data.frame(rep("Si",length(parameters)),parameters,analysis_result[,1],(as.numeric(analysis_result[,1])+as.numeric(analysis_result[,3])),stringsAsFactors = FALSE)
             colnames(si_results)<-c("Statistic","Parameter","Sensitivity","Error")
@@ -539,3 +577,4 @@ graph_efast_analysis<-function(dblink, parameters, measures, output_directory, e
     message(paste("Error in plotting eFAST results from database. Error message generated:\n",e))
   })
 }
+
