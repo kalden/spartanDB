@@ -385,8 +385,10 @@ graph_lhc_analysis<-function(dblink, parameters, measures, measure_scale, output
 #' @param experiment_id Experiment ID for the experiment being plotted. May be NULL if description and date specified
 #' @param experiment_date Date experiment created. May be NULL if adding by experiment ID
 #' @param experiment_description A description of this experiment. May be NULL if adding by experiment ID
+#' @param graph_results Whether analysis should be plotted once complete
+#' @param output_directory If graph_results is TRUE, where analysis should be plotted to on the file system
 #'
-generate_efast_analysis<-function(dblink, parameters, measures, experiment_id=NULL, experiment_date=NULL, experiment_description=NULL)
+generate_efast_analysis<-function(dblink, parameters, measures, experiment_id=NULL, experiment_date=NULL, experiment_description=NULL, graph_results=FALSE, output_directory=NULL)
 {
   # For eFAST, there is a Dummy parameter. This should exist in the database incase eFAST is used
   # So we add it, if the user has not specified it in their parameters
@@ -485,6 +487,12 @@ generate_efast_analysis<-function(dblink, parameters, measures, experiment_id=NU
           # Write this set to the DB
           colnames(block_to_add_to_db)<-c("parameter","measure","statistic_1","statistic_2","statistic_3","statistic_4","statistic_5","statistic_6","statistic_7","statistic_8","statistic_9","experiment_set_id")
           a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(block_to_add_to_db),row.names=FALSE,name="spartan_generated_stats", append=TRUE)
+          message(paste0("eFAST Analysis performed and statistics added to database under experiment ID ",experiment_id))
+
+          if(graph_results)
+          {
+            graph_efast_analysis(dblink, parameters, measures, output_directory, experiment_id=experiment_id)
+          }
         }
         else
         {

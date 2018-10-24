@@ -177,21 +177,26 @@ generate_lhc_set_in_db <- function(dblink, parameters, num_samples, minvals, max
 #' if not entered
 #' @param return_experiment_id As a new experiment is being created here, it may be
 #' useful to have the ID for this entry. Boolean to state whether this is returned
+#' @param experiment_type As this can also be used to store ABC results, whether this is
+#' an LHC or ABC experiment
+#' @param paramOfInterest Used for adding ABC samples to database, labelling parameter
+#' sets as ABC. NULL for LHC parameter sets
 #'
 #' @export
-add_existing_lhc_sample_to_database<-function(dblink, parameter_set, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date(), return_experiment_id=FALSE)
+add_existing_lhc_sample_to_database<-function(dblink, parameter_set, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date(),
+                                              return_experiment_id=FALSE, experiment_type="LHC", paramOfInterest=NULL)
 {
   # Flag to store if a new experiment is created, in case rollback is required on sample generation error
   new_experiment_flag <- set_new_experiment_flag(experiment_id)
 
   tryCatch({
-    experiment_id <- check_experiment_id(dblink, experiment_id, "LHC", experiment_date, experiment_description)
+    experiment_id <- check_experiment_id(dblink, experiment_id, experiment_type, experiment_date, experiment_description)
 
     # Check above was successful (returned a value that isn't -1)
     if(experiment_id != -1)
     {
       # If no experiment ID is specified, generate a new experiment
-      success <- add_parameter_set_to_database(dblink, round(parameter_set,digits=12), experiment_id, experiment_type="LHC")
+      success <- add_parameter_set_to_database(dblink, round(parameter_set,digits=12), experiment_id, experiment_type, param_of_interest = paramOfInterest)
       if(!success)
         stop("Error in Adding Parameter Set to Database")
       else
@@ -225,10 +230,13 @@ add_existing_lhc_sample_to_database<-function(dblink, parameter_set, experiment_
 #' experiment is being created
 #' @param experiment_date Date experiment created. Defaults to today's date
 #' if not entered
+#' @param return_experiment_id As a new experiment is being created here, it may be
+#' useful to have the ID for this entry. Boolean to state whether this is returned
 #'
 #' @export
-add_existing_efast_sample_to_database<-function(dblink, parameters, num_curves, parameter_set_path=NULL, parameters_r_object=NULL, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date())
+add_existing_efast_sample_to_database<-function(dblink, parameters, num_curves, parameter_set_path=NULL, parameters_r_object=NULL, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date(), return_experiment_id=FALSE)
 {
+
   # Flag to store if a new experiment is created, in case rollback is required on sample generation error
   new_experiment_flag <- set_new_experiment_flag(experiment_id)
 
@@ -275,6 +283,14 @@ add_existing_efast_sample_to_database<-function(dblink, parameters, num_curves, 
       }
 
       message(paste("Parameter Set Added to Database, with Experiment ID ",experiment_id,sep=""))
+
+      if(return_experiment_id)
+        return(experiment_id)
+    }
+    else
+    {
+      # Going to return the -1 to point out the error to functions calling this one
+      return(experiment_id)
     }
   }, error = function(e)
   {
@@ -354,7 +370,7 @@ add_parameter_set_to_database<-function(dblink, parameter_set,experiment_id, exp
       r<-cbind(parameter_set,rep(experiment_id,nrow(parameter_set)),rep(param_of_interest,nrow(parameter_set)),rep(curve,nrow(parameter_set)))
       colnames(r)<-c(colnames(r)[1:(ncol(r)-3)],"experiment_id","paramOfInterest","curve")
     }
-    else if(experiment_type=="Robustness")
+    else if(experiment_type=="Robustness" | experiment_type=="ABC")
     {
       r<-cbind(parameter_set,rep(experiment_id,nrow(parameter_set)),rep(param_of_interest,nrow(parameter_set)))
       colnames(r)<-c(colnames(r)[1:(ncol(r)-2)],"experiment_id","paramOfInterest")
@@ -521,7 +537,7 @@ setup_experiment <- function(dblink,experiment_type,experiment_date, experiment_
     }
     else
     {
-      message("Experiment description and date already in the database")
+      message("Experiment description and date already in the database. Analysis Terminated")
       return(-1)
     }
   }, error = function(e)

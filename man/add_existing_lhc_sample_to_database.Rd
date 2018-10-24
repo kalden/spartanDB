@@ -6,7 +6,8 @@
 \usage{
 add_existing_lhc_sample_to_database(dblink, parameter_set,
   experiment_id = NULL, experiment_description = NULL,
-  experiment_date = Sys.Date())
+  experiment_date = Sys.Date(), return_experiment_id = FALSE,
+  experiment_type = "LHC", paramOfInterest = NULL)
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}
@@ -21,6 +22,15 @@ experiment is being created}
 
 \item{experiment_date}{Date experiment created. Defaults to today's date
 if not entered}
+
+\item{return_experiment_id}{As a new experiment is being created here, it may be
+useful to have the ID for this entry. Boolean to state whether this is returned}
+
+\item{experiment_type}{As this can also be used to store ABC results, whether this is
+an LHC or ABC experiment}
+
+\item{paramOfInterest}{Used for adding ABC samples to database, labelling parameter
+sets as ABC. NULL for LHC parameter sets}
 }
 \description{
 If an experiment ID is specified, the existance of this record is checked, as well as the existance of any current parameter sets for that experiment

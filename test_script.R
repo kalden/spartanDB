@@ -5,6 +5,7 @@
 
 library(RMySQL)
 library(spartan)
+library(EasyABC)
 # R needs a full path to find the settings file
 rmysql.settingsfile<-"~/Documents/sql_settings/spartanDB.cnf"
 rmysql.db<-"spartan_ppsim"
@@ -91,8 +92,7 @@ add_efast_sim_results_from_csv_files(dblink, file.path(getwd(), "efast"), parame
 # Now we can create summary stats from the replicates:
 summarise_replicate_efast_runs(dblink, parameters, measures, experiment_id=2)
 # Now do the eFAST Analysis
-generate_efast_analysis(dblink, parameters, measures, experiment_id=2)
-graph_efast_analysis(dblink, parameters, measures, output_directory, experiment_id=2)
+generate_efast_analysis(dblink, parameters, measures, experiment_id=2, graph_results=TRUE, output_directory=output_directory)
 
 # Or we could generate an R object (as robospartan will) and add that to the DB
 # Current spartan does not generate the dummy - needs specifying
@@ -146,12 +146,38 @@ predictions <- use_ensemble_to_generate_predictions(ensemble,validation_set,
 store_summary_experiment_result(dblink, validation_set, predictions, experiment_id=NULL, experiment_description="Predictions from Ensemble", experiment_date=Sys.Date())
 
 ##### Demonstration of using the Ensemble to perform SA and add straight to the DB
-#1 : LHC
+#1: LHC
 emulated_lhc_values<-lhc_generate_lhc_sample(NULL,parameters,500,minvals,maxvals, "normal",write_csv=FALSE)
 prccs<-emulate_lhc_sampled_parameters("/home/kja505/Desktop", ensemble, parameters, measures, measure_scale, dataset = data.frame(emulated_lhc_values), normalise = TRUE, write_csv_files = FALSE)
 # Now to add all this to the database
 add_emulated_lhc_to_db(dblink,prccs$predictions[parameters], prccs$predictions[measures], prccs$prccs, experiment_description="Test emulated LHC4")
 
+#2:eFAST
+emulated_efast_values<-efast_generate_sample(NULL, 3,65,c(parameters,"Dummy"), c(minvals,0), c(maxvals,1), write_csv=FALSE, return_sample=TRUE)
+all_curve_results<-emulate_efast_sampled_parameters(NULL, ensemble, c(parameters,"Dummy"), measures, 3, normalise = TRUE, csv_file_input=FALSE,
+                                                    spartan_sample_obj=emulated_efast_values,write_csv_file_out=FALSE, normalise_result=TRUE)
+analyse_and_add_emulated_efast_to_db(dblink, emulated_efast_values, all_curve_results, c(parameters,"Dummy"), measures, experiment_id=NULL, experiment_description="Test emulated eFAST3",
+                                     graph_results=TRUE, output_directory="/home/kja505/Desktop")
 
+
+#### Can we store ABC data in the database too?
+normalise_values = TRUE
+normalise_result = TRUE
+prior=list(c("unif",0,100),c("unif",0.1,0.9),c("unif",0.1,0.5),
+           c("unif",0.015,0.08),c("unif",0.1,1.0),c("unif",0.25,5.0))
+sum_stat_obs=c(4.4677342593,28.5051144444)
+abc_set<-create_abc_settings_object(parameters, measures, ensemble, normalise_values,
+                           normalise_result, file_out = FALSE)
+numRunsUnderThreshold=100
+tolerance=c(20,15,10.00,7,5.00)
+abc_resultSet<-ABC_sequential(method="Beaumont",
+                              model=ensemble_abc_wrapper, prior=prior,
+                              nb_simul=numRunsUnderThreshold,
+                              summary_stat_target=sum_stat_obs,
+                              tolerance_tab=tolerance, verbose=FALSE)
+store_abc_experiment_in_db(dblink, abc_set, abc_resultSet, parameters, experiment_id=NULL, experiment_description="ABC Test", graph_results=TRUE, output_directory="/home/kja505/Desktop")
+
+# Retrieve stored results for plotting
+retrieve_abc_experiment_for_plotting(dblink, experiment_description="ABC Test", experiment_date = Sys.Date())
 
 dbDisconnect(dblink)

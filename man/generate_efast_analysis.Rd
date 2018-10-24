@@ -5,7 +5,8 @@
 \title{From the results stored in a mysql database, produce summary statistics using eFAST technique}
 \usage{
 generate_efast_analysis(dblink, parameters, measures, experiment_id = NULL,
-  experiment_date = NULL, experiment_description = NULL)
+  experiment_date = NULL, experiment_description = NULL,
+  graph_results = FALSE, output_directory = NULL)
 }
 \arguments{
 \item{dblink}{A link to the database in which the results are stored}
@@ -19,6 +20,10 @@ generate_efast_analysis(dblink, parameters, measures, experiment_id = NULL,
 \item{experiment_date}{Date experiment created. May be NULL if adding by experiment ID}
 
 \item{experiment_description}{A description of this experiment. May be NULL if adding by experiment ID}
+
+\item{graph_results}{Whether analysis should be plotted once complete}
+
+\item{output_directory}{If graph_results is TRUE, where analysis should be plotted to on the file system}
 }
 \description{
 From the results stored in a mysql database, produce summary statistics using eFAST technique

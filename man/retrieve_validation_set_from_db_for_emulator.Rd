@@ -4,13 +4,11 @@
 \alias{retrieve_validation_set_from_db_for_emulator}
 \title{To demonstrate use of emulator, we return validation set from the database to show how the emulator can make predictions on output}
 \usage{
-retrieve_validation_set_from_db_for_emulator(dblink, built_emulators,
-  parameters, measures, experiment_id)
+retrieve_validation_set_from_db_for_emulator(dblink, parameters, measures,
+  experiment_id)
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}
-
-\item{built_emulators}{Object containing the emulators built by spartan}
 
 \item{parameters}{The parameters of the simulation that are being analysed}
 
