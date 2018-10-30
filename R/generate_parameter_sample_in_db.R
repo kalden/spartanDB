@@ -468,13 +468,12 @@ remove_errored_new_experiment_from_db <- function(dblink, experiment_id)
 #'
 #' @param output_dir Directory to store the generated CSV file
 #' @param dblink A link to the database in which this entry is being added
-#' @param experiment_type Type of sample generated (Robustness, LHC, eFAST)
 #' @param experiment_id Id of the experiment in the database
 #' @param experiment_date Date the experiment was performed
 #' @param experiment_description Description of the experiment being performed
 #'
 #' @export
-download_sample_as_csvfile<-function(output_dir, dblink, experiment_type,experiment_id=NULL, experiment_description=NULL, experiment_date=NULL)
+download_sample_as_csvfile<-function(output_dir, dblink,experiment_id=NULL, experiment_description=NULL, experiment_date=NULL)
 {
   tryCatch({
 
@@ -485,7 +484,8 @@ download_sample_as_csvfile<-function(output_dir, dblink, experiment_type,experim
 
     if(experiment_id!=-1)
     {
-      sample<-DBI::dbGetQuery(dblink,paste("SELECT * FROM spartan_parameters WHERE experiment_id=",experiment_id,";",sep=""))
+      sample<-DBI::dbGetQuery(dblink,paste0("SELECT * FROM spartan_parameters WHERE experiment_id=",experiment_id,";"))
+      experiment_type <- DBI::dbGetQuery(dblink, paste0("SELECT experiment_type FROM spartan_experiment WHERE experiment_id=",experiment_id,";"))
       all_cols <- colnames(sample)
 
       # Retrieve the parameter set and output as CSV file

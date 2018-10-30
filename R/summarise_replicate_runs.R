@@ -101,22 +101,23 @@ summarise_replicate_lhc_runs<-function(dblink, measures, experiment_id=NULL, exp
     {
       # Check whether there are already results in the DB for this experiment
       pre_existing_results<-as.numeric(DBI::dbGetQuery(dblink,paste0("SELECT COUNT(analysed_set_id) FROM spartan_analysed_results WHERE experiment_set_id=",experiment_id)))
+      print(pre_existing_results)
 
       if(pre_existing_results==0)
       {
-
         # Check whether there are results to process for this experiment
         num_results<-DBI::dbGetQuery(dblink,paste0("SELECT COUNT(result_set_id) AS number_results FROM spartan_results WHERE experiment_set_id=",experiment_id,";"))
 
         if(num_results > 0)
         {
-          # Get the number of parameter sets for this experiment
-          number_samples <- as.numeric(DBI::dbGetQuery(dblink,paste("SELECT COUNT(parameter_set_id) AS number_samples FROM spartan_parameters WHERE experiment_id=",experiment_id,";",sep="")))
+          # Get the parameters from the database
+          set_parameters <- DBI::dbGetQuery(dblink, paste0("SELECT parameter_set_id FROM spartan_parameters WHERE experiment_id=",experiment_id,";"))
 
           # Declare a matrix for storing the results
-          results_summary<-matrix(nrow=number_samples,ncol=length(measures)+2)
+          results_summary<-matrix(nrow=nrow(set_parameters),ncol=length(measures)+2)
 
-          for(k in 1:number_samples)
+          row_count<-1
+          for(k in set_parameters[[1]])
           {
             # Get the results from the database for this set
             set_results<-DBI::dbGetQuery(dblink,paste("SELECT ",toString(measures)," FROM spartan_results WHERE experiment_set_id=",experiment_id," AND parameter_set_id=",k,";",sep=""))
@@ -124,12 +125,14 @@ summarise_replicate_lhc_runs<-function(dblink, measures, experiment_id=NULL, exp
             # Take the median of both columns and store in the matrix
             for(m in 1:length(measures))
             {
-              results_summary[k,m]<-stats::median(as.numeric(set_results[,m]))
+              results_summary[row_count,m]<-stats::median(as.numeric(set_results[,m]))
             }
             # Add parameter set ID
-            results_summary[k,length(measures)+1]<-k
+            results_summary[row_count,length(measures)+1]<-k
             # Add experiment ID
-            results_summary[k, length(measures)+2]<-experiment_id
+            results_summary[row_count, length(measures)+2]<-experiment_id
+
+            row_count<-row_count+1
           }
 
           # Now we can add these summarys to the analysed results table

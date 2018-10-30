@@ -5,13 +5,12 @@
 #' @param results_obj R object containing results being added to the database
 #' @param parameters The parameters of the simulation that are being analysed
 #' @param measures The measures of the simulation that are being assessed
-#' @param experiment_type Whether this is an LHC or Robustness analysis experiment
 #' @param experiment_id Experiment ID for the results being added. May be NULL if description and date specified
 #' @param experiment_date Date experiment created. May be NULL if adding by experiment ID
 #' @param experiment_description A description of this experiment. May be NULL if adding by experiment ID
 #'
 #' @export
-add_lhc_and_robustness_sim_results <- function(dblink, parameters, measures, experiment_type, experiment_id=NULL, experiment_description=NULL, experiment_date=NULL, results_csv=NULL, results_obj=NULL)
+add_lhc_and_robustness_sim_results <- function(dblink, parameters, measures, experiment_id=NULL, experiment_description=NULL, experiment_date=NULL, results_csv=NULL, results_obj=NULL)
 {
   tryCatch({
 
@@ -38,6 +37,7 @@ add_lhc_and_robustness_sim_results <- function(dblink, parameters, measures, exp
         # Providing this is read in correctly, we can then process these into the DB
         if(nrow(results)>0)
         {
+          experiment_type <- DBI::dbGetQuery(dblink, paste0("SELECT experiment_type FROM spartan_experiment WHERE experiment_id=",experiment_id,";"))
           success <- add_replicate_runs_to_database(dblink, parameters, measures, results, experiment_id, experiment_type)
           if(!success)
             stop("Error in Adding LHC/robustness results from CSV file")
@@ -185,7 +185,7 @@ check_experiment_and_parameters_exist_for_adding_results<-function(dblink, exper
       }
       else
       {
-        message("Cannot add results from robustness or latin-hypercube experiment to the database.\n You need to enter a valid experiment ID that is in the database, or a experiment description and date that is in the database")
+        message("Cannot add or find results from robustness or latin-hypercube experiment to the database.\n You need to enter a valid experiment ID that is in the database, or a experiment description and date that is in the database")
       }
     }
   }, error = function(e)

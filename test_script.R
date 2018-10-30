@@ -15,7 +15,7 @@ parameters<-c("stableBindProbability","chemokineExpressionThreshold","initialChe
 measures<-c("Velocity","Displacement")
 baseline<- c(50,0.3, 0.2, 0.04, 0.60, 1.0)
 minvals <- c(10, 0.10, 0.10, 0.015, 0.1, 0.25)
-maxvals <- c(100, 0.9, 0.50, 0.08, 1.0, 5.0)
+maxvals <- c(100, 0.9, 0.50, 0.08, 0.95, 5.0)
 incvals <- c(10, 0.1, 0.05, 0.005, 0.05, 0.25)
 measure_scale<-c("Velocity","Displacement")
 

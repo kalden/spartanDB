@@ -362,7 +362,7 @@ graph_lhc_analysis<-function(dblink, parameters, measures, measure_scale, output
         coeffs<-DBI::dbGetQuery(dblink,paste("SELECT * FROM spartan_generated_stats WHERE experiment_set_id=",experiment_id,";",sep=""))
 
         spartan::lhc_graphMeasuresForParameterChange_from_db(results, coeffs, parameters, measures, measure_scale, output_directory,
-                                                             OUTPUT_TYPE = c("PDF"))
+                                                             OUTPUT_TYPE=output_type)
 
         }
       else
