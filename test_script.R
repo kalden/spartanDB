@@ -129,12 +129,8 @@ emulators<-regenerate_emulators_from_db_data(dblink, parameters, measures, emula
 
 # Now to generate some ensembles from the emulators
 validation_set<-retrieve_validation_set_from_db_for_emulator(dblink, parameters, measures, experiment_id=4)
-# Try to make some predictions - KA TO DO: STORE THESE RESULTS AS AN EXPERIMENT?
-predictions <- emulator_predictions(emulators, parameters, measures,  data.frame(validation_set), normalise=FALSE, normalise_result=TRUE)
-# Returns column headers that feature the ML algorithm - these need to be the measures in order to be added to the db
-colnames(predictions)<-measures
-# Store this experiment in the database
-store_summary_experiment_result(dblink, validation_set, predictions, experiment_id=NULL, experiment_description="RF Predictions from Emulation", experiment_date=Sys.Date())
+# Try to make some predictions
+use_emulators_to_make_and_store_predictions(dblink, emulators, parameters, measures, validation_set, normalise=FALSE, normalise_result=TRUE, experiment_description="Predict Validation Set")
 
 # Generate emulators and an ensemble
 ensemble<-generate_emulators_and_ensemble_using_db(dblink, parameters, measures, emulator_list=c("RF","SVM"), normalise_set=TRUE, experiment_id=1)

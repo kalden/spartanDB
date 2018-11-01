@@ -5,7 +5,7 @@
 \title{Adds a set of results to the database for a given LHC or robustness experiment}
 \usage{
 add_lhc_and_robustness_sim_results(dblink, parameters, measures,
-  experiment_type, experiment_id = NULL, experiment_description = NULL,
+  experiment_id = NULL, experiment_description = NULL,
   experiment_date = NULL, results_csv = NULL, results_obj = NULL)
 }
 \arguments{
@@ -14,8 +14,6 @@ add_lhc_and_robustness_sim_results(dblink, parameters, measures,
 \item{parameters}{The parameters of the simulation that are being analysed}
 
 \item{measures}{The measures of the simulation that are being assessed}
-
-\item{experiment_type}{Whether this is an LHC or Robustness analysis experiment}
 
 \item{experiment_id}{Experiment ID for the results being added. May be NULL if description and date specified}
 

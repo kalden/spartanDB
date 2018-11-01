@@ -221,7 +221,7 @@ test_that("download_sample_as_csvfile", {
   add_existing_robustness_sample_to_database(dblink, parameters, ppsim_robustness_set)
 
   # Check can download this sample
-  expect_message(download_sample_as_csvfile(getwd(), dblink, experiment_type="Robustness",experiment_id=1),paste("Sample exported as CSV file to ",getwd(),"/generated_sample.csv",sep=""))
+  expect_message(download_sample_as_csvfile(getwd(), dblink, experiment_id=1),paste("Sample exported as CSV file to ",getwd(),"/generated_sample.csv",sep=""))
 
   # Open the CSV file and check structure
   r<-read.csv(file.path(getwd(),"generated_sample.csv"),header=T)

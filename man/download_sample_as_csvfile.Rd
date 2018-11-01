@@ -4,16 +4,13 @@
 \alias{download_sample_as_csvfile}
 \title{Download a generated sample from the database as a CSV file}
 \usage{
-download_sample_as_csvfile(output_dir, dblink, experiment_type,
-  experiment_id = NULL, experiment_description = NULL,
-  experiment_date = NULL)
+download_sample_as_csvfile(output_dir, dblink, experiment_id = NULL,
+  experiment_description = NULL, experiment_date = NULL)
 }
 \arguments{
 \item{output_dir}{Directory to store the generated CSV file}
 
 \item{dblink}{A link to the database in which this entry is being added}
-
-\item{experiment_type}{Type of sample generated (Robustness, LHC, eFAST)}
 
 \item{experiment_id}{Id of the experiment in the database}
 

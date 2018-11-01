@@ -17,6 +17,7 @@
 create_emulators_from_database_experiments<-function(dblink, parameters, measures, emulator_list, percent_train=75, percent_test=15, percent_validation=10,
                                                      normalise_set=FALSE, experiment_id)
 {
+
   experiment_id <- check_experiment_and_parameters_exist_for_adding_results(dblink, experiment_id, experiment_description=NULL, experiment_date=NULL)
 
   # if experiment ID is ok:
@@ -229,4 +230,60 @@ retrieve_validation_set_from_db_for_emulator<-function(dblink, parameters, measu
     message("No validation set contained in the database for experiment ID ",experiment_id)
     stop()
   }
+}
+
+#' Takes a set of parameters and uses a set of emulators to generate predictions of simulator output, then adds these to the database
+#'
+#' @param dblink A link to the database in which this table is being created
+#' @param sim_emulators Emulation object created by spartan
+#' @param parameters The parameters of the simulation that are being analysed
+#' @param measures The measures of the simulation that are being assessed
+#' @param data_to_predict Sets of parameters for which simulation output measures should be predicted
+#' @param normalise Whether the data_to_predict should be normalised prior to making predictions. Defaults to FALSE
+#' @param normalise_result Whether the predictions generated should be normalised using the scale set in the emulator. Defaults to FALSE
+#' @param experiment_description Description of this experiment, to be added to the database
+#' @param experiment_date Date this experiment was performed. Defaults to that day's date
+#' @export
+use_emulators_to_make_and_store_predictions<-function(dblink, sim_emulators, parameters, measures, data_to_predict, normalise=FALSE, normalise_result=FALSE, experiment_description, experiment_date=Sys.Date())
+{
+  tryCatch({
+    # Set up an experiment in the database for storing this data
+    experiment_id<-setup_experiment(dblink,"Emulator Predictions",experiment_date, experiment_description)
+    message(paste0("New Emulator Prediction Experiment Added to Database with Experiment ID ",experiment_id))
+
+    # Generate predictions
+    predictions <- spartan::emulator_predictions(sim_emulators, parameters, measures,  data.frame(data_to_predict), normalise, normalise_result)
+
+    # Firstly, store the parameter set used in this experiment in the database
+    params_to_add <- cbind(data_to_predict,rep(experiment_id,nrow(data_to_predict)))
+    colnames(params_to_add)<-c(colnames(data_to_predict),"experiment_id")
+    params<-RMySQL::dbWriteTable(dblink, value = as.data.frame(params_to_add),row.names=FALSE,name="spartan_parameters", append=TRUE)
+
+    # For storing the results alongside these parameters, we need the database IDs in which these were stored
+    param_ids<-DBI::dbGetQuery(dblink,paste0("SELECT parameter_set_id FROM spartan_parameters WHERE experiment_id=",experiment_id))
+
+    # Now we can process the data and add to the database
+
+
+    predictions_frame_to_add_to_db<-NULL
+
+    # If we have more than one emulator in the sim_emulators object, we will need to store the predictions made by each emulator
+    for(i in 1:length(sim_emulators$emulators))
+    {
+      # Retrieve the predictions for this emulator, bind with the param_ids seen earlier, experiment ID, and use paramOfInterest column to store emulator type
+      emulator_predictions<-cbind(predictions[,paste0(sim_emulators$emulators[[i]]$type,"_",measures)], rep(sim_emulators$emulators[[i]]$type,nrow(predictions)),
+                                  param_ids,rep(experiment_id,nrow(predictions)))
+      # Set column name to match the measures
+      colnames(emulator_predictions)<-c(measures,"paramOfInterest","summarising_parameter_set_id","experiment_set_id")
+      predictions_frame_to_add_to_db<-rbind(predictions_frame_to_add_to_db,emulator_predictions)
+    }
+
+    # Now we can add this set to the DB
+    a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(predictions_frame_to_add_to_db),row.names=FALSE,name="spartan_analysed_results", append=TRUE)
+    message("Experiment Data Added to Database")
+  }, error = function(e)
+  {
+    message(paste("Error in Using Emulators to Generate Predictions and Add that Experiment to the Database.Error Message Generated: \n",e,sep=""))
+    remove_errored_new_experiment_from_db(dblink, experiment_id)
+  })
 }
