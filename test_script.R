@@ -133,23 +133,23 @@ validation_set<-retrieve_validation_set_from_db_for_emulator(dblink, parameters,
 use_emulators_to_make_and_store_predictions(dblink, emulators, parameters, measures, validation_set, normalise=FALSE, normalise_result=TRUE, experiment_description="Predict Validation Set")
 
 # Generate emulators and an ensemble
-ensemble<-generate_emulators_and_ensemble_using_db(dblink, parameters, measures, emulator_list=c("RF","SVM"), normalise_set=TRUE, experiment_id=1)
+ensemble<-generate_emulators_and_ensemble_using_db(dblink, parameters, measures, emulator_list=c("RF","SVM"), normalise_set=TRUE, experiment_id=2)
 # Use ensemble to generate predictions
 validation_set<-retrieve_validation_set_from_db_for_emulator(dblink, parameters, measures, experiment_id=5)
-predictions <- use_ensemble_to_generate_predictions(ensemble,validation_set,
-                                                    parameters,measures, normalise_values = FALSE, normalise_result = TRUE)
-# Store this experiment in the database - NOTE POTENTIAL ISSUE HERE OF STORING NORMALISED PARAMETER VALUES AND SCALED OUTPUT!
-store_summary_experiment_result(dblink, validation_set, predictions, experiment_id=NULL, experiment_description="Predictions from Ensemble", experiment_date=Sys.Date())
+use_ensemble_to_make_and_store_predictions(dblink, ensemble, parameters, measures, validation_set, normalise=FALSE, normalise_result=TRUE, experiment_description="Predict Validation Set2")
+
 
 ##### Demonstration of using the Ensemble to perform SA and add straight to the DB
 #1: LHC
-emulated_lhc_values<-lhc_generate_lhc_sample(NULL,parameters,500,minvals,maxvals, "normal",write_csv=FALSE)
-prccs<-emulate_lhc_sampled_parameters("/home/kja505/Desktop", ensemble, parameters, measures, measure_scale, dataset = data.frame(emulated_lhc_values), normalise = TRUE, write_csv_files = FALSE)
-# Now to add all this to the database
-add_emulated_lhc_to_db(dblink,prccs$predictions[parameters], prccs$predictions[measures], prccs$prccs, experiment_description="Test emulated LHC4")
+emulated_lhc_values<-spartan::lhc_generate_lhc_sample(NULL,parameters,500,minvals,maxvals, "normal",write_csv=FALSE)
+analyse_and_add_emulated_lhc_to_db(dblink, emulated_lhc_values, ensemble, parameters, measures, experiment_description="Emulated LHC Analysis", output_directory="/home/kja505/Desktop", normalise_sample=TRUE)
 
 #2:eFAST
 emulated_efast_values<-efast_generate_sample(NULL, 3,65,c(parameters,"Dummy"), c(minvals,0), c(maxvals,1), write_csv=FALSE, return_sample=TRUE)
+analyse_and_add_emulated_efast_to_db(dblink, emulated_efast_values, ensemble, parameters, measures, experiment_description="Emulated eFAST Analysis2",
+                                               graph_results=TRUE, output_directory="/home/kja505/Desktop", normalise_sample=TRUE, normalise_result=TRUE)
+
+
 all_curve_results<-emulate_efast_sampled_parameters(NULL, ensemble, c(parameters,"Dummy"), measures, 3, normalise = TRUE, csv_file_input=FALSE,
                                                     spartan_sample_obj=emulated_efast_values,write_csv_file_out=FALSE, normalise_result=TRUE)
 analyse_and_add_emulated_efast_to_db(dblink, emulated_efast_values, all_curve_results, c(parameters,"Dummy"), measures, experiment_id=NULL, experiment_description="Test emulated eFAST3",
@@ -171,7 +171,8 @@ abc_resultSet<-ABC_sequential(method="Beaumont",
                               nb_simul=numRunsUnderThreshold,
                               summary_stat_target=sum_stat_obs,
                               tolerance_tab=tolerance, verbose=FALSE)
-store_abc_experiment_in_db(dblink, abc_set, abc_resultSet, parameters, experiment_id=NULL, experiment_description="ABC Test", graph_results=TRUE, output_directory="/home/kja505/Desktop")
+store_abc_experiment_in_db(dblink, abc_set, abc_resultSet, parameters, measures, experiment_id=NULL, experiment_description="ABC Test",
+                           graph_results=TRUE, output_directory="/home/kja505/Desktop")
 
 # Retrieve stored results for plotting
 retrieve_abc_experiment_for_plotting(dblink, experiment_description="ABC Test", experiment_date = Sys.Date())

@@ -327,7 +327,7 @@ add_prcc_values_to_db<-function(dblink, parameters, measures, coeffs, experiment
   # Write this set to the DB
   colnames(block_to_add_to_db)<-c("parameter","measure","statistic_1","statistic_2","experiment_set_id")
   a<-RMySQL::dbWriteTable(dblink, value = as.data.frame(block_to_add_to_db),row.names=FALSE,name="spartan_generated_stats", append=TRUE)
-  message(paste0("PRCC Values for ",experiment_id," Added to Database"))
+  message(paste0("PRCC Values for Experiment ",experiment_id," Added to Database"))
 }
 
 #' Take LHC experiment from database and produce plots of the results

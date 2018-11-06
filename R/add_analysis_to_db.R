@@ -75,6 +75,7 @@ add_lhc_and_robustness_sim_results <- function(dblink, parameters, measures, exp
 #' @export
 add_efast_sim_results_from_csv_files <- function(dblink, results_folder_path, parameters, measures, num_curves, experiment_id=NULL, experiment_description=NULL, experiment_date=NULL)
 {
+
   # For eFAST, there is a Dummy parameter. This should exist in the database incase eFAST is used
   # So we add it, if the user has not specified it in their parameters
   if(!"Dummy" %in% parameters & !"dummy" %in% parameters)

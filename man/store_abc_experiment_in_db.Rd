@@ -5,7 +5,7 @@
 \title{Store an ABC experiment in the simulation database}
 \usage{
 store_abc_experiment_in_db(dblink, abc_settings, abc_results, parameters,
-  experiment_id = NULL, experiment_description = NULL,
+  measures, experiment_id = NULL, experiment_description = NULL,
   experiment_date = Sys.Date(), graph_results = FALSE,
   output_directory = NULL)
 }
@@ -17,6 +17,8 @@ store_abc_experiment_in_db(dblink, abc_settings, abc_results, parameters,
 \item{abc_results}{Object produced by the EasyABC ABC_Sequential method, containing analysis results}
 
 \item{parameters}{The parameters of the simulation that are being analysed}
+
+\item{measures}{Simulation output responses}
 
 \item{experiment_id}{Experiment ID for the results being added. May be NULL if description and date specified}
 
