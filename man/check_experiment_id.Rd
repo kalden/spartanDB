@@ -4,8 +4,8 @@
 \alias{check_experiment_id}
 \title{Creates a new experiment ID if one not specified, and checks ID is in database with no parameter sets if one is specified}
 \usage{
-check_experiment_id(dblink, experiment_id, experiment_type, experiment_date,
-  experiment_description)
+check_experiment_id(dblink, experiment_id, experiment_type,
+  experiment_date, experiment_description)
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}

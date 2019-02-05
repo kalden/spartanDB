@@ -4,9 +4,9 @@
 \alias{add_efast_sim_results_from_csv_files}
 \title{Adds a set of results to the database for a given eFAST experiment, from a set of CSV files}
 \usage{
-add_efast_sim_results_from_csv_files(dblink, results_folder_path, parameters,
-  measures, num_curves, experiment_id = NULL, experiment_description = NULL,
-  experiment_date = NULL)
+add_efast_sim_results_from_csv_files(dblink, results_folder_path,
+  parameters, measures, num_curves, experiment_id = NULL,
+  experiment_description = NULL, experiment_date = NULL)
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}

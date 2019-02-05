@@ -5,8 +5,9 @@
 \title{Takes a set of parameters and uses an ensemble of emulators to generate predictions of simulator output, then adds these to the database}
 \usage{
 use_ensemble_to_make_and_store_predictions(dblink, ensemble, parameters,
-  measures, data_to_predict, normalise = FALSE, normalise_result = FALSE,
-  experiment_description, experiment_date = Sys.Date())
+  measures, data_to_predict, normalise = FALSE,
+  normalise_result = FALSE, experiment_description,
+  experiment_date = Sys.Date())
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}

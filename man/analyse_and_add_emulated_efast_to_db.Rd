@@ -5,10 +5,10 @@
 \title{Take a set of emulated efast experiments, add to database, and run eFAST analysis}
 \usage{
 analyse_and_add_emulated_efast_to_db(dblink, parameter_value_set, emulator,
-  parameters, measures, experiment_id = NULL, experiment_description = NULL,
-  experiment_date = Sys.Date(), graph_results = FALSE,
-  output_directory = NULL, normalise_sample = FALSE,
-  normalise_result = FALSE)
+  parameters, measures, experiment_id = NULL,
+  experiment_description = NULL, experiment_date = Sys.Date(),
+  graph_results = FALSE, output_directory = NULL,
+  normalise_sample = FALSE, normalise_result = FALSE)
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}

@@ -241,6 +241,7 @@ add_replicate_runs_to_database<-function(dblink, parameters, measures, all_resul
 
     if(experiment_type=="LHC") {
       f<-cbind(t(as.numeric(all_results[1,measures])),parameter_set_id,experiment_id)
+      colnames(f)<-c(measures,"parameter_set_id","experiment_set_id")
     } else if(experiment_type=="eFAST") {
       f<-cbind(t(as.numeric(all_results[1,measures])),parameter_set_id,experiment_id,param_of_interest,curve)
     } else if(experiment_type=="Robustness") {
@@ -308,11 +309,13 @@ add_replicate_runs_to_database<-function(dblink, parameters, measures, all_resul
 
       # Add the result to the block to be written to the database
       if(experiment_type=="LHC")
-        f<-cbind(t(as.numeric(all_results[result,measures])),parameter_set_id,experiment_id)
-      else if(experiment_type=="eFAST")
-        f<-cbind(t(as.numeric(all_results[result,measures])),parameter_set_id,experiment_id,param_of_interest,curve)
-      else if(experiment_type=="Robustness")
       {
+        f<-cbind(t(as.numeric(all_results[result,measures])),parameter_set_id,experiment_id)
+        colnames(f)<-c(measures,"parameter_set_id","experiment_set_id")
+      } else if(experiment_type=="eFAST") {
+        f<-cbind(t(as.numeric(all_results[result,measures])),parameter_set_id,experiment_id,param_of_interest,curve)
+      } else if(experiment_type=="Robustness") {
+
        # if(nrow(param_of_interest)>1)
       #  {
           # Assumption made here that the sample exists more than once in the parameter table, yet the results are only in the CSV file once

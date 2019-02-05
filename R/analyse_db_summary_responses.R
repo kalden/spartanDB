@@ -226,6 +226,8 @@ graph_robustness_analysis<-function(dblink, output_directory, parameters, measur
 #' @param experiment_id Experiment ID for the results being added. May be NULL if description and date specified
 #' @param experiment_date Date experiment created. May be NULL if adding by experiment ID
 #' @param experiment_description A description of this experiment. May be NULL if adding by experiment ID
+#'
+#' @export
 generate_lhc_analysis<-function(dblink, parameters, measures, experiment_id=NULL, experiment_date=NULL, experiment_description=NULL)
 {
   tryCatch({
@@ -242,9 +244,12 @@ generate_lhc_analysis<-function(dblink, parameters, measures, experiment_id=NULL
       {
 
         # Get the analysed results for this experiment
-        results<-DBI::dbGetQuery(dblink,paste("SELECT ",toString(parameters),",",toString(measures)," FROM spartan_parameters,spartan_analysed_results WHERE spartan_analysed_results.experiment_set_id=",
+        results<-as_data_frame(DBI::dbGetQuery(dblink,paste("SELECT ",toString(parameters),",",toString(measures)," FROM spartan_parameters,spartan_analysed_results WHERE spartan_analysed_results.experiment_set_id=",
                               experiment_id," AND spartan_parameters.experiment_id=",experiment_id,
-                              " AND spartan_analysed_results.summarising_parameter_set_id=spartan_parameters.parameter_set_id;", sep=""))
+                              " AND spartan_analysed_results.summarising_parameter_set_id=spartan_parameters.parameter_set_id;", sep="")))
+
+        # Results will come back as characters, need to change that
+        results <- results %>% mutate_if(is.character,as.numeric)
 
         if(nrow(results) > 0)
         {
@@ -303,26 +308,42 @@ generate_lhc_analysis<-function(dblink, parameters, measures, experiment_id=NULL
 #' @param experiment_id Experiment ID for the results being added.
 add_prcc_values_to_db<-function(dblink, parameters, measures, coeffs, experiment_id)
 {
-  block_to_add_to_db<-matrix(nrow=length(parameters)*length(measures),ncol=5)
+  #block_to_add_to_db<-matrix(nrow=length(parameters)*length(measures),ncol=5)
+  block_to_add_to_db<-NULL
   row_ref<-1
 
-  # Now to put this in the DB. In this case statistic_1 is PRCC, statistic_2 is P-Value
-  for(r in 1:nrow(coeffs))
+  for(m in 1:length(measures))
   {
-    col_offset<-0
+    measure_row<-coeffs[paste0(measures[m],".estimate"),]
+    labels<-names(measure_row)
+    prccs<-t(measure_row)
+    p_val_row<-coeffs[paste0(measures[m],".p.value"),]
+    pvals<-t(p_val_row)
 
-    for(m in 1:length(measures))
-    {
-      block_to_add_to_db[row_ref,1]<-row.names(coeffs)[r]
-      # Need to get the measure name - assuming in same order as provided measures
-      block_to_add_to_db[row_ref,2]<-measures[m]
-      block_to_add_to_db[row_ref,3]<-coeffs[r,(col_offset+1)]
-      block_to_add_to_db[row_ref,4]<-coeffs[r,(col_offset+2)]
-      block_to_add_to_db[row_ref,5]<-experiment_id
-      row_ref<-row_ref+1
-      col_offset<-col_offset+2
-    }
+    t<-cbind(labels,rep(measures[m],nrow(prccs)),prccs,pvals,rep(experiment_id,nrow(prccs)))
+    block_to_add_to_db<-rbind(block_to_add_to_db,t)
+    #measure_block<-cbind(cbind(labels),prccs)
+
   }
+
+  # Old coeffient structure
+  # Now to put this in the DB. In this case statistic_1 is PRCC, statistic_2 is P-Value
+  #for(r in 1:nrow(coeffs))
+  #{
+  #  col_offset<-0
+
+    #for(m in 1:length(measures))
+    #{
+    #  block_to_add_to_db[row_ref,1]<-row.names(coeffs)[r]
+      # Need to get the measure name - assuming in same order as provided measures
+  #    block_to_add_to_db[row_ref,2]<-measures[m]
+  #    block_to_add_to_db[row_ref,3]<-coeffs[r,(col_offset+1)]
+  #    block_to_add_to_db[row_ref,4]<-coeffs[r,(col_offset+2)]
+  #    block_to_add_to_db[row_ref,5]<-experiment_id
+  #    row_ref<-row_ref+1
+  #    col_offset<-col_offset+2
+  #  }
+  #}
 
   # Write this set to the DB
   colnames(block_to_add_to_db)<-c("parameter","measure","statistic_1","statistic_2","experiment_set_id")

@@ -4,8 +4,9 @@
 \alias{retrieve_abc_experiment_for_plotting}
 \title{Retrieve posteriors from database and produce density plots}
 \usage{
-retrieve_abc_experiment_for_plotting(dblink, parameters, experiment_id = NULL,
-  experiment_description = NULL, experiment_date = Sys.Date())
+retrieve_abc_experiment_for_plotting(dblink, parameters,
+  experiment_id = NULL, experiment_description = NULL,
+  experiment_date = Sys.Date())
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}

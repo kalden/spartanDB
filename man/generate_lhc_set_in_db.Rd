@@ -6,7 +6,7 @@
 \usage{
 generate_lhc_set_in_db(dblink, parameters, num_samples, minvals, maxvals,
   algorithm, experiment_id = NULL, experiment_description = NULL,
-  experiment_date = Sys.Date())
+  experiment_date = Sys.Date(), return_experiment_id = FALSE)
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}
@@ -32,6 +32,9 @@ experiment is being created}
 
 \item{experiment_date}{Date experiment created. Defaults to today's date
 if not entered}
+
+\item{return_experiment_id}{Whether the experiment ID generated should be
+returned}
 }
 \description{
 Generates a set of parameters for execution in simulation to permit

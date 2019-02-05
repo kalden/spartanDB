@@ -138,9 +138,11 @@ generate_efast_set_in_db <- function(dblink, parameters, num_samples, minvals, m
 #' experiment is being created
 #' @param experiment_date Date experiment created. Defaults to today's date
 #' if not entered
+#' @param return_experiment_id Whether the experiment ID generated should be
+#' returned
 #'
 #' @export
-generate_lhc_set_in_db <- function(dblink, parameters, num_samples, minvals, maxvals, algorithm, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date())
+generate_lhc_set_in_db <- function(dblink, parameters, num_samples, minvals, maxvals, algorithm, experiment_id=NULL, experiment_description=NULL, experiment_date = Sys.Date(), return_experiment_id=FALSE)
 {
   # Flag to store if a new experiment is created, in case rollback is required on sample generation error
   new_experiment_flag <- set_new_experiment_flag(experiment_id)
@@ -155,6 +157,10 @@ generate_lhc_set_in_db <- function(dblink, parameters, num_samples, minvals, max
       add_parameter_set_to_database(dblink, sample, experiment_id, experiment_type="LHC")
       message(paste("Parameter Set Added to Database, with Experiment ID ",experiment_id,sep=""))
     }
+
+    if(return_experiment_id)
+      return(experiment_id)
+
   }, error = function(e)
   {
     message(paste("Error in Generating LHC Sample and Storing in Database. Error Message Generated: \n",e,sep=""))
@@ -376,7 +382,7 @@ add_parameter_set_to_database<-function(dblink, parameter_set,experiment_id, exp
       colnames(r)<-c(colnames(r)[1:(ncol(r)-2)],"experiment_id","paramOfInterest")
     }
 
-    RMySQL::dbWriteTable(dblink, value = data.frame(r,stringsAsFactors=FALSE), row.names = FALSE, name = "spartan_parameters", append = TRUE )
+    RMySQL::dbWriteTable(dblink, value = data.frame(round(r,digits=12),stringsAsFactors=FALSE), row.names = FALSE, name = "spartan_parameters", append = TRUE )
     return(TRUE)
   }, error = function(e)
   {
@@ -490,14 +496,14 @@ download_sample_as_csvfile<-function(output_dir, dblink,experiment_id=NULL, expe
 
       # Retrieve the parameter set and output as CSV file
       if(experiment_type=="LHC")
-        # Take off the paramofInterest, curve, parameter_set_id, and experiment_id columns
-        to_output <- sample[, (all_cols[! all_cols %in% c("parameter_set_id","paramOfInterest","curve","experiment_id")])]
+        # Take off the dummy, paramofInterest, curve, parameter_set_id, and experiment_id columns
+        to_output <- sample[, (all_cols[! all_cols %in% c("parameter_set_id","Dummy","paramOfInterest","curve","experiment_id")])]
       else if(experiment_type=="eFAST")
         # Take off the parameter_set_id, and experiment_id columns
         to_output <- sample[, (all_cols[! all_cols %in% c("parameter_set_id","experiment_id")])]
       else if(experiment_type=="Robustness")
-        # Take off the parameter_set_id, curve, and experiment_id columns
-        to_output <- sample[, (all_cols[! all_cols %in% c("parameter_set_id","curve","experiment_id")])]
+        # Take off the Dummy, parameter_set_id, curve, and experiment_id columns
+        to_output <- sample[, (all_cols[! all_cols %in% c("Dummy","parameter_set_id","curve","experiment_id")])]
 
       #write out
       utils::write.csv(file=file.path(output_dir,"generated_sample.csv"),to_output,row.names=F,quote=F)

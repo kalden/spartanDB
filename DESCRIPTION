@@ -14,7 +14,7 @@ Imports: spartan,
 Suggests: knitr,
     rmarkdown,
     testthat
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
 URL: http://www.york.ac.uk/ycil/software/spartan
 BugReports: http://github.com/kalden/spartanDB/issues
 VignetteBuilder: knitr

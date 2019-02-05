@@ -4,8 +4,8 @@
 \alias{add_existing_robustness_sample_to_database}
 \title{Adds a previously generated robustness sample to the database, either creating an experiment record for this in doing so or checking a specified experiment ID}
 \usage{
-add_existing_robustness_sample_to_database(dblink, parameters, parameter_set,
-  experiment_id = NULL, experiment_description = NULL,
+add_existing_robustness_sample_to_database(dblink, parameters,
+  parameter_set, experiment_id = NULL, experiment_description = NULL,
   experiment_date = Sys.Date())
 }
 \arguments{

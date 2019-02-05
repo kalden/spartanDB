@@ -4,8 +4,8 @@
 \alias{regenerate_emulators_from_db_data}
 \title{Takes a previous emulator generation experiment stored in the database and regenerates the emulators. Ensures emulators can be regenerated from the same data}
 \usage{
-regenerate_emulators_from_db_data(dblink, parameters, measures, emulator_list,
-  normalise_set = FALSE, experiment_id = NULL,
+regenerate_emulators_from_db_data(dblink, parameters, measures,
+  emulator_list, normalise_set = FALSE, experiment_id = NULL,
   experiment_description = NULL, experiment_date = NULL)
 }
 \arguments{

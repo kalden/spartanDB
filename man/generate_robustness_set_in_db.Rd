@@ -4,9 +4,9 @@
 \alias{generate_robustness_set_in_db}
 \title{Generate robustness analysis sample and store in database}
 \usage{
-generate_robustness_set_in_db(dblink, parameters, baseline, minvals, maxvals,
-  incvals, experiment_id = NULL, experiment_description = NULL,
-  experiment_date = Sys.Date())
+generate_robustness_set_in_db(dblink, parameters, baseline, minvals,
+  maxvals, incvals, experiment_id = NULL,
+  experiment_description = NULL, experiment_date = Sys.Date())
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}

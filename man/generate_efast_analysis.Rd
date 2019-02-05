@@ -4,9 +4,10 @@
 \alias{generate_efast_analysis}
 \title{From the results stored in a mysql database, produce summary statistics using eFAST technique}
 \usage{
-generate_efast_analysis(dblink, parameters, measures, experiment_id = NULL,
-  experiment_date = NULL, experiment_description = NULL,
-  graph_results = FALSE, output_directory = NULL)
+generate_efast_analysis(dblink, parameters, measures,
+  experiment_id = NULL, experiment_date = NULL,
+  experiment_description = NULL, graph_results = FALSE,
+  output_directory = NULL)
 }
 \arguments{
 \item{dblink}{A link to the database in which the results are stored}

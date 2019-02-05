@@ -5,7 +5,8 @@
 \title{Adds replicate runs to the database for a given experiment ID}
 \usage{
 add_replicate_runs_to_database(dblink, parameters, measures, all_results,
-  experiment_id, experiment_type, curve = NULL, param_of_interest = NULL)
+  experiment_id, experiment_type, curve = NULL,
+  param_of_interest = NULL)
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}

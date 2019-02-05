@@ -7,8 +7,10 @@ library(RMySQL)
 library(spartan)
 library(EasyABC)
 # R needs a full path to find the settings file
-rmysql.settingsfile<-"~/Documents/sql_settings/spartanDB.cnf"
-rmysql.db<-"spartan_ppsim"
+#rmysql.settingsfile<-"~/Documents/sql_settings/spartanDB.cnf"
+rmysql.settingsfile<-"/home/kja505/Dropbox/Sarcoid/spartanDB.cnf"
+#rmysql.db<-"spartan_ppsim"
+rmysql.db<-"spartan_sarcoid"
 dblink<-dbConnect(MySQL(),default.file=rmysql.settingsfile,group=rmysql.db)
 
 parameters<-c("stableBindProbability","chemokineExpressionThreshold","initialChemokineExpressionValue","maxChemokineExpressionValue","maxProbabilityOfAdhesion","adhesionFactorExpressionSlope")
@@ -29,7 +31,7 @@ create_database_structure(dblink, parameters, measures)
 ## Route 1: Generate a sample and store in the database
 #parameters<-c("chemoThreshold","chemoUpperLinearAdjust","chemoLowerLinearAdjust","maxVCAMeffectProbabilityCutoff","vcamSlope")
 generate_lhc_set_in_db(dblink, parameters, 500, minvals, maxvals, "normal", experiment_description="generated_lhc_set")
-download_sample_as_csvfile("/home/kja505/Desktop/", dblink, experiment_type="LHC",experiment_id=1)
+download_sample_as_csvfile("/home/kja505/Desktop/", dblink, experiment_id=1)
 ## Note the above has an optional date argument if you don't want to use today's date
 ## Route 2: Already have an existing sample and want to add it to the database
 add_existing_lhc_sample_to_database(dblink, read.csv("~Documents/spartanDB/test_data/LHC_Params.csv",header=T), experiment_description="original ppsim lhc dataset")
@@ -56,10 +58,10 @@ data(pregenerated_lhc)
 add_existing_lhc_sample_to_database(dblink, pregenerated_lhc, experiment_description="original ppsim lhc dataset")
 # Now add the results for that experiment
 experiment_id<-1 # Could have also added by description and date - these removed as default to NULL if ID specified
-add_lhc_and_robustness_sim_results(dblink, parameters, measures, "LHC", experiment_id, results_csv="~/Documents/spartanDB/test_data/LHC_AllResults.csv")
+add_lhc_and_robustness_sim_results(dblink, parameters, measures, experiment_id, results_csv="~/Documents/spartanDB/test_data/LHC_AllResults.csv")
 # Or could have used the object
 data(ppsim_lhc_results)
-add_lhc_and_robustness_sim_results(dblink, parameters, measures, "LHC", experiment_id, results_obj=ppsim_lhc_results)
+add_lhc_and_robustness_sim_results(dblink, parameters, measures, experiment_id, results_obj=ppsim_lhc_results)
 
 # Now analyse the replicates to create a summary result
 summarise_replicate_lhc_runs(dblink, measures, experiment_id)

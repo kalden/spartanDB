@@ -4,8 +4,8 @@
 \alias{record_partitioned_data_parameters_to_db}
 \title{Takes the partitioned parameter values data and stores this in the database, so emulation creation can be replicated if necessary}
 \usage{
-record_partitioned_data_parameters_to_db(dblink, partitioned_data, parameters,
-  new_experiment_id)
+record_partitioned_data_parameters_to_db(dblink, partitioned_data,
+  parameters, new_experiment_id)
 }
 \arguments{
 \item{dblink}{A link to the database in which this table is being created}
